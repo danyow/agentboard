@@ -1,0 +1,278 @@
+import { describe, expect, test } from 'bun:test'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import { config } from '../config'
+import { SessionManager } from '../SessionManager'
+
+interface WindowState {
+  id: string
+  index: number
+  name: string
+  path: string
+  activity: number
+  command: string
+}
+
+interface SessionState {
+  name: string
+  windows: WindowState[]
+}
+
+function createTmuxRunner(sessions: SessionState[], baseIndex = 0) {
+  const sessionMap = new Map<string, WindowState[]>(
+    sessions.map((session) => [session.name, [...session.windows]])
+  )
+  const calls: string[][] = []
+
+  const runTmux = (args: string[]) => {
+    calls.push(args)
+    const command = args[0]
+
+    if (command === 'has-session') {
+      const sessionName = args[2]
+      if (sessionMap.has(sessionName)) {
+        return ''
+      }
+      throw new Error(`session not found: ${sessionName}`)
+    }
+
+    if (command === 'new-session') {
+      const sessionName = args[3]
+      sessionMap.set(sessionName, [])
+      return ''
+    }
+
+    if (command === 'list-sessions') {
+      return Array.from(sessionMap.keys()).join('\n')
+    }
+
+    if (command === 'show-options') {
+      return String(baseIndex)
+    }
+
+    if (command === 'list-windows') {
+      const sessionName = args[2]
+      const format = args[4]
+      const windows = sessionMap.get(sessionName) ?? []
+      if (format === '#{window_index}') {
+        return windows.map((window) => String(window.index)).join('\n')
+      }
+      return windows
+        .map(
+          (window) =>
+            `${window.id}\t${window.name}\t${window.path}\t${window.activity}\t${window.command}`
+        )
+        .join('\n')
+    }
+
+    if (command === 'new-window') {
+      const target = args[2]
+      const name = args[4]
+      const cwd = args[6]
+      const startCommand = args[7]
+      const [sessionName, indexText] = target.split(':')
+      const index = Number.parseInt(indexText ?? '', 10)
+      const windows = sessionMap.get(sessionName) ?? []
+      windows.push({
+        id: String(index),
+        index,
+        name,
+        path: cwd,
+        activity: 0,
+        command: startCommand ?? '',
+      })
+      sessionMap.set(sessionName, windows)
+      return ''
+    }
+
+    if (command === 'rename-window') {
+      const target = args[2]
+      const newName = args[3]
+      const [sessionName, windowId] = target.split(':')
+      const windows = sessionMap.get(sessionName) ?? []
+      const window = windows.find((item) => item.id === windowId)
+      if (window) {
+        window.name = newName
+      }
+      return ''
+    }
+
+    if (command === 'kill-window') {
+      const target = args[2]
+      const [sessionName, windowId] = target.split(':')
+      const windows = sessionMap.get(sessionName) ?? []
+      sessionMap.set(
+        sessionName,
+        windows.filter((item) => item.id !== windowId)
+      )
+      return ''
+    }
+
+    if (command === 'display-message') {
+      const target = args[3]
+      const [sessionName] = target.split(':')
+      return sessionName ?? ''
+    }
+
+    throw new Error(`Unhandled tmux command: ${args.join(' ')}`)
+  }
+
+  return { runTmux, calls, sessionMap }
+}
+
+describe('SessionManager', () => {
+  test('listWindows updates status based on pane content changes', () => {
+    const managedSession = 'agentboard'
+    const externalSession = 'external-1'
+    const runner = createTmuxRunner(
+      [
+        {
+          name: managedSession,
+          windows: [
+            {
+              id: '1',
+              index: 1,
+              name: 'alpha',
+              path: '/tmp/alpha',
+              activity: 1700000000,
+              command: 'claude',
+            },
+          ],
+        },
+        {
+          name: externalSession,
+          windows: [
+            {
+              id: '2',
+              index: 2,
+              name: 'bravo',
+              path: '/tmp/bravo',
+              activity: 1700000001,
+              command: 'codex',
+            },
+          ],
+        },
+      ],
+      1
+    )
+
+    const contentSequences = new Map<string, string[]>([
+      [`${managedSession}:1`, ['same', 'same']],
+      [`${externalSession}:2`, ['first', 'second']],
+    ])
+
+    const capturePaneContent = (tmuxWindow: string) => {
+      const sequence = contentSequences.get(tmuxWindow) ?? ['']
+      const next = sequence.shift() ?? ''
+      contentSequences.set(tmuxWindow, sequence)
+      return next
+    }
+
+    const manager = new SessionManager(managedSession, {
+      runTmux: runner.runTmux,
+      capturePaneContent,
+      now: () => 1700000000000,
+    })
+
+    const originalPrefixes = config.discoverPrefixes
+    config.discoverPrefixes = ['external-']
+    try {
+      const first = manager.listWindows()
+      const second = manager.listWindows()
+
+      const firstManaged = first.find((session) => session.tmuxWindow === `${managedSession}:1`)
+      const secondManaged = second.find((session) => session.tmuxWindow === `${managedSession}:1`)
+      const secondExternal = second.find((session) => session.tmuxWindow === `${externalSession}:2`)
+
+      expect(firstManaged?.status).toBe('waiting')
+      expect(secondManaged?.status).toBe('waiting')
+      expect(secondExternal?.status).toBe('working')
+    } finally {
+      config.discoverPrefixes = originalPrefixes
+    }
+  })
+
+  test('createWindow normalizes name and picks next index', () => {
+    const sessionName = 'agentboard'
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentboard-'))
+    const runner = createTmuxRunner(
+      [
+        {
+          name: sessionName,
+          windows: [
+            {
+              id: '1',
+              index: 1,
+              name: 'My-Project',
+              path: tempDir,
+              activity: 1700000000,
+              command: 'claude',
+            },
+          ],
+        },
+      ],
+      1
+    )
+
+    const manager = new SessionManager(sessionName, {
+      runTmux: runner.runTmux,
+      capturePaneContent: () => '',
+      now: () => 1700000000000,
+    })
+
+    const created = manager.createWindow(tempDir, 'My Project', 'codex')
+    expect(created.name).toBe('My-Project-2')
+    expect(created.tmuxWindow).toBe(`${sessionName}:2`)
+    expect(created.command).toBe('codex')
+
+    const newWindowCall = runner.calls.find((call) => call[0] === 'new-window')
+    expect(newWindowCall).toBeTruthy()
+    expect(newWindowCall?.includes('My-Project-2')).toBe(true)
+  })
+
+  test('renameWindow rejects duplicates and applies rename', () => {
+    const sessionName = 'agentboard'
+    const runner = createTmuxRunner(
+      [
+        {
+          name: sessionName,
+          windows: [
+            {
+              id: '1',
+              index: 1,
+              name: 'alpha',
+              path: '/tmp/alpha',
+              activity: 0,
+              command: '',
+            },
+            {
+              id: '2',
+              index: 2,
+              name: 'bravo',
+              path: '/tmp/bravo',
+              activity: 0,
+              command: '',
+            },
+          ],
+        },
+      ],
+      1
+    )
+
+    const manager = new SessionManager(sessionName, {
+      runTmux: runner.runTmux,
+      capturePaneContent: () => '',
+      now: () => 1700000000000,
+    })
+
+    expect(() => manager.renameWindow(`${sessionName}:1`, 'bravo')).toThrow(
+      /already exists/
+    )
+
+    manager.renameWindow(`${sessionName}:1`, 'new_name')
+    const renameCall = runner.calls.find((call) => call[0] === 'rename-window')
+    expect(renameCall).toBeTruthy()
+    expect(renameCall?.[3]).toBe('new_name')
+  })
+})

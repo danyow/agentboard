@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
+import fs from 'node:fs'
 import net from 'node:net'
 
 const tmuxAvailable = (() => {
@@ -87,6 +88,35 @@ if (!tmuxAvailable) {
       expect(message.type).toBe('sessions')
       expect(Array.isArray(message.sessions)).toBe(true)
       expect(message.sessions.length).toBeGreaterThan(0)
+    })
+
+    test('paste-image endpoint stores uploads', async () => {
+      const formData = new FormData()
+      const blob = new Blob([new Uint8Array([0, 1, 2, 3])], {
+        type: 'image/png',
+      })
+      formData.append('image', blob, 'paste.png')
+
+      const response = await fetch(`http://localhost:${port}/api/paste-image`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      expect(response.ok).toBe(true)
+      const payload = (await response.json()) as { path: string }
+      expect(payload.path.startsWith('/tmp/paste-')).toBe(true)
+      expect(payload.path.endsWith('.png')).toBe(true)
+      expect(fs.existsSync(payload.path)).toBe(true)
+      fs.unlinkSync(payload.path)
+    })
+
+    test('paste-image endpoint rejects empty payloads', async () => {
+      const response = await fetch(`http://localhost:${port}/api/paste-image`, {
+        method: 'POST',
+        body: new FormData(),
+      })
+
+      expect(response.status).toBe(400)
     })
   })
 }

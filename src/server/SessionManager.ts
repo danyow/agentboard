@@ -12,21 +12,42 @@ interface WindowInfo {
   command: string
 }
 
+type TmuxRunner = (args: string[]) => string
+type CapturePane = (tmuxWindow: string) => string | null
+type NowFn = () => number
+
 // Cache of pane content hashes for change detection
 const paneContentCache = new Map<string, string>()
 
 export class SessionManager {
   private sessionName: string
+  private runTmux: TmuxRunner
+  private capturePaneContent: CapturePane
+  private now: NowFn
 
-  constructor(sessionName = config.tmuxSession) {
+  constructor(
+    sessionName = config.tmuxSession,
+    {
+      runTmux: runTmuxOverride,
+      capturePaneContent: captureOverride,
+      now,
+    }: {
+      runTmux?: TmuxRunner
+      capturePaneContent?: CapturePane
+      now?: NowFn
+    } = {}
+  ) {
     this.sessionName = sessionName
+    this.runTmux = runTmuxOverride ?? runTmux
+    this.capturePaneContent = captureOverride ?? capturePaneContent
+    this.now = now ?? Date.now
   }
 
   ensureSession(): void {
     try {
-      runTmux(['has-session', '-t', this.sessionName])
+      this.runTmux(['has-session', '-t', this.sessionName])
     } catch {
-      runTmux(['new-session', '-d', '-s', this.sessionName])
+      this.runTmux(['new-session', '-d', '-s', this.sessionName])
     }
   }
 
@@ -80,7 +101,7 @@ export class SessionManager {
     const finalName = this.findAvailableName(baseName, existingNames)
     const nextIndex = this.findNextAvailableWindowIndex()
 
-    runTmux([
+    this.runTmux([
       'new-window',
       '-t',
       `${this.sessionName}:${nextIndex}`,
@@ -102,7 +123,7 @@ export class SessionManager {
   }
 
   killWindow(tmuxWindow: string): void {
-    runTmux(['kill-window', '-t', tmuxWindow])
+    this.runTmux(['kill-window', '-t', tmuxWindow])
     paneContentCache.delete(tmuxWindow)
   }
 
@@ -131,7 +152,7 @@ export class SessionManager {
       throw new Error(`A session named "${trimmed}" already exists`)
     }
 
-    runTmux(['rename-window', '-t', tmuxWindow, trimmed])
+    this.runTmux(['rename-window', '-t', tmuxWindow, trimmed])
   }
 
   private listExternalWindows(): Session[] {
@@ -150,7 +171,7 @@ export class SessionManager {
 
   private listSessions(): string[] {
     try {
-      const output = runTmux(['list-sessions', '-F', '#{session_name}'])
+      const output = this.runTmux(['list-sessions', '-F', '#{session_name}'])
       return output
         .split('\n')
         .map((line) => line.trim())
@@ -164,7 +185,7 @@ export class SessionManager {
     sessionName: string,
     source: Session['source']
   ): Session[] {
-    const output = runTmux([
+    const output = this.runTmux([
       'list-windows',
       '-t',
       sessionName,
@@ -184,9 +205,9 @@ export class SessionManager {
           name: window.name,
           tmuxWindow,
           projectPath: window.path,
-          status: inferStatus(tmuxWindow),
+          status: inferStatus(tmuxWindow, this.capturePaneContent),
           lastActivity: new Date(
-            window.activity ? window.activity * 1000 : Date.now()
+            window.activity ? window.activity * 1000 : this.now()
           ).toISOString(),
           agentType: inferAgentType(window.command),
           source,
@@ -229,7 +250,7 @@ export class SessionManager {
 
   private getTmuxBaseIndex(): number {
     try {
-      const output = runTmux(['show-options', '-gv', 'base-index'])
+      const output = this.runTmux(['show-options', '-gv', 'base-index'])
       return Number.parseInt(output.trim(), 10) || 0
     } catch {
       return 0
@@ -238,7 +259,7 @@ export class SessionManager {
 
   private getWindowIndices(): number[] {
     try {
-      const output = runTmux([
+      const output = this.runTmux([
         'list-windows',
         '-t',
         this.sessionName,
@@ -260,7 +281,7 @@ export class SessionManager {
       return tmuxWindow.slice(0, colonIndex)
     }
 
-    const resolved = runTmux([
+    const resolved = this.runTmux([
       'display-message',
       '-p',
       '-t',
@@ -329,8 +350,11 @@ function resolveProjectPath(value: string): string {
   return path.resolve(trimmed)
 }
 
-function inferStatus(tmuxWindow: string): SessionStatus {
-  const content = capturePaneContent(tmuxWindow)
+function inferStatus(
+  tmuxWindow: string,
+  capture: CapturePane = capturePaneContent
+): SessionStatus {
+  const content = capture(tmuxWindow)
   if (content === null) {
     return 'unknown'
   }

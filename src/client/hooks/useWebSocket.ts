@@ -7,7 +7,7 @@ type MessageListener = (message: ServerMessage) => void
 
 type StatusListener = (status: ConnectionStatus, error: string | null) => void
 
-class WebSocketManager {
+export class WebSocketManager {
   private ws: WebSocket | null = null
   private listeners = new Set<MessageListener>()
   private statusListeners = new Set<StatusListener>()

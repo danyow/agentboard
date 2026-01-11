@@ -3,6 +3,11 @@ interface TerminalCallbacks {
   onExit?: () => void
 }
 
+type SpawnFn = (
+  args: string[],
+  options: Parameters<typeof Bun.spawn>[1]
+) => ReturnType<typeof Bun.spawn>
+
 export class TerminalProxy {
   private process: ReturnType<typeof Bun.spawn> | null = null
   private decoder = new TextDecoder()
@@ -11,7 +16,8 @@ export class TerminalProxy {
 
   constructor(
     private tmuxWindow: string,
-    private callbacks: TerminalCallbacks
+    private callbacks: TerminalCallbacks,
+    private spawn: SpawnFn = Bun.spawn
   ) {}
 
   start(): void {
@@ -19,7 +25,7 @@ export class TerminalProxy {
       return
     }
 
-    const proc = Bun.spawn(['tmux', 'attach', '-t', this.tmuxWindow], {
+    const proc = this.spawn(['tmux', 'attach', '-t', this.tmuxWindow], {
       env: {
         ...process.env,
         TERM: 'xterm-256color',
