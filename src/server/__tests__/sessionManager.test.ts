@@ -295,6 +295,35 @@ describe('SessionManager', () => {
     expect(newWindowCall?.includes('My-Project-2')).toBe(true)
   })
 
+  test('createWindow rejects missing or empty project paths', () => {
+    const sessionName = 'agentboard-invalid-path'
+    const runner = createTmuxRunner(
+      [
+        {
+          name: sessionName,
+          windows: [],
+        },
+      ],
+      1
+    )
+
+    const manager = new SessionManager(sessionName, {
+      runTmux: runner.runTmux,
+      capturePaneContent: () => '',
+      now: () => 1700000000000,
+    })
+
+    expect(() => manager.createWindow('   ')).toThrow('Project path is required')
+
+    const missingPath = path.join(
+      os.tmpdir(),
+      `agentboard-missing-${Date.now()}`
+    )
+    expect(() => manager.createWindow(missingPath)).toThrow(
+      `Project path does not exist: ${missingPath}`
+    )
+  })
+
   test('renameWindow rejects duplicates and applies rename', () => {
     const sessionName = 'agentboard'
     const runner = createTmuxRunner(
@@ -338,6 +367,44 @@ describe('SessionManager', () => {
     const renameCall = runner.calls.find((call) => call[0] === 'rename-window')
     expect(renameCall).toBeTruthy()
     expect(renameCall?.[3]).toBe('new_name')
+  })
+
+  test('renameWindow rejects invalid names', () => {
+    const sessionName = 'agentboard-invalid-name'
+    const runner = createTmuxRunner(
+      [
+        {
+          name: sessionName,
+          windows: [
+            {
+              id: '1',
+              index: 1,
+              name: 'alpha',
+              path: '/tmp/alpha',
+              activity: 0,
+              command: '',
+            },
+          ],
+        },
+      ],
+      1
+    )
+
+    const manager = new SessionManager(sessionName, {
+      runTmux: runner.runTmux,
+      capturePaneContent: () => '',
+      now: () => 1700000000000,
+    })
+
+    expect(() => manager.renameWindow(`${sessionName}:1`, 'bad name')).toThrow(
+      /letters, numbers/
+    )
+    expect(() => manager.renameWindow(`${sessionName}:1`, '   ')).toThrow(
+      /empty/
+    )
+
+    const renameCalls = runner.calls.filter((call) => call[0] === 'rename-window')
+    expect(renameCalls).toHaveLength(0)
   })
 
   test('killWindow sends tmux command', () => {

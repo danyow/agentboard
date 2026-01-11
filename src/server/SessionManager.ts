@@ -403,14 +403,18 @@ function inferStatus(
 
 function capturePaneContent(tmuxWindow: string): string | null {
   try {
+    // Use -J to unwrap lines and only capture visible content (no scrollback)
+    // This prevents false positives from scrollback buffer changes on window focus
     const result = Bun.spawnSync(
-      ['tmux', 'capture-pane', '-t', tmuxWindow, '-p'],
+      ['tmux', 'capture-pane', '-t', tmuxWindow, '-p', '-J'],
       { stdout: 'pipe', stderr: 'pipe' }
     )
     if (result.exitCode !== 0) {
       return null
     }
-    return result.stdout.toString()
+    // Only compare last 30 lines to avoid scrollback noise
+    const lines = result.stdout.toString().split('\n')
+    return lines.slice(-30).join('\n')
   } catch {
     return null
   }
