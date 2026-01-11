@@ -6,13 +6,9 @@ Made this because I got sick of using tmux kb shortcuts on my phone, and using B
 
 Run your desktop/server, then connect from your phone or laptop over Tailscale/LAN. Shared workspace across devices.
 
-<p align="center">
-  <img src="assets/desktop.png" alt="Desktop view" width="700"/>
-</p>
-<p align="center">
-  <img src="assets/mobile.png" alt="Mobile view" width="280"/>
-  <img src="assets/mobile-diff.png" alt="Mobile diff view" width="280"/>
-</p>
+| Desktop | Mobile |
+| :---: | :---: |
+| <img src="assets/desktop.png" alt="Desktop" width="500"/> | <img src="assets/mobile.png" alt="Mobile" width="200"/><br/><img src="assets/mobile-diff.png" alt="Mobile diff" width="200"/> |
 
 ## Requirements
 
