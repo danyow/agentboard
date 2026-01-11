@@ -8,7 +8,7 @@ Run your desktop/server, then connect from your phone or laptop over Tailscale/L
 
 | Desktop | Mobile |
 | :---: | :---: |
-| <img src="assets/desktop.png" alt="Desktop" width="500"/> | <img src="assets/mobile.png" alt="Mobile" width="200"/><br/><img src="assets/mobile-diff.png" alt="Mobile diff" width="200"/> |
+| <img src="assets/desktop.png" alt="Desktop" width="500"/> | <img src="assets/mobile.png" alt="Mobile" width="200"/><br/><img src="assets/mobile-diff.png" alt="Mobile diff" width="200"/><br/><img src="assets/mobile-tools.png" alt="Mobile tools" width="200"/> |
 
 ## Requirements
 
