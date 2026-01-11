@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 import type { Session } from '@shared/types'
 import { useSessionStore } from '../stores/sessionStore'
+import { useSettingsStore } from '../stores/settingsStore'
 import { sortSessions } from '../utils/sessions'
 
 const baseSession: Session = {
@@ -25,6 +26,10 @@ beforeEach(() => {
     hasLoaded: false,
     connectionStatus: 'connecting',
     connectionError: null,
+  })
+  useSettingsStore.setState({
+    sessionSortMode: 'created',
+    sessionSortDirection: 'desc',
   })
 })
 
