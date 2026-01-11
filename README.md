@@ -1,89 +1,49 @@
 # Agentboard
 
-Agentboard is a real-time dashboard for Claude Code sessions. It discovers tmux windows, streams terminal output into the browser, and watches Claude's JSONL logs to surface session status.
+Web UI for tmux, optimized for agent TUI's (`claude`, `codex`, etc). 
+
+Made this because I got sick of using tmux kb shortcuts on my phone, and using Blink.
+
+Run your desktop/server, then connect from your phone or laptop over Tailscale/LAN. Shared workspace across devices.
 
 ## Requirements
 
-- **Bun** 1.3+
-- **tmux** (`brew install tmux` on macOS)
-- **Claude Code CLI** available as `claude`
+- Bun 1.3+
+- tmux
+- A network path to your machine (Tailscale, LAN, etc.)
 
-## Quick Start
+## Usage
 
 ```bash
 bun install
 bun run dev
 ```
 
-- Frontend: `http://localhost:5173`
-- Backend/WebSocket: `http://localhost:4040`
+Open `http://<your-machine>:5173`. Backend runs on 4040.
 
-For a production build:
-
+Production:
 ```bash
 bun run build
 bun run start
 ```
 
-## How It Works
+## Keyboard Shortcuts
 
-- Agentboard uses a single tmux session (default: `agentboard`) with one window per project.
-- Claude Code logs are read from `~/.claude/projects/<escaped-path>/*.jsonl`.
-- Codex logs are read from `~/.codex/sessions/YYYY/MM/DD/*.jsonl` and matched by session `cwd`.
-- Status changes are derived from JSONL events (tool use, turn end, user prompts).
+- `Cmd+Shift+A` - New session
+- `Cmd+Shift+X` - Kill session
+- `Cmd+1-9` - Switch sessions
 
-## Environment Variables
+## Environment
 
-```bash
+```
 PORT=4040
 TMUX_SESSION=agentboard
 REFRESH_INTERVAL_MS=5000
-DISCOVER_PREFIXES=external,work
-CLAUDE_PROJECTS_DIR="$HOME/.claude/projects"
-CODEX_SESSIONS_DIR="$HOME/.codex/sessions"
+DISCOVER_PREFIXES=work,external
 ```
 
-- `DISCOVER_PREFIXES` allows viewing windows from other tmux sessions. These are marked **View Only**.
-
-## Creating Sessions
-
-Use the UI's **+ New Session** button, or run the helper script:
-
-```bash
-./scripts/agentboard-window.sh
-```
-
-You can also pass a custom window name:
-
-```bash
-./scripts/agentboard-window.sh my-project
-```
+`DISCOVER_PREFIXES` lets you see windows from other tmux sessions (view-only).
 
 ## Notes
 
-- Browser notifications only fire when the tab is hidden. Sound + favicon badge fire always.
-- If `tmux` is missing, the server will fail fast with install instructions.
-- Claude logs can be large; Agentboard tails only the most recent data for status detection.
-
-## Testing
-
-```bash
-bun test
-bun run test:coverage
-bun run lint
-```
-
-`bun run test:coverage` adds zero-coverage entries for untested source files so line coverage reflects the whole `src` tree (type-only files are skipped).
-
-For browser-level E2E tests:
-
-```bash
-bunx playwright install
-bun run test:e2e
-```
-
-Optional overrides:
-
-```bash
-E2E_PORT=4173 E2E_TMUX_SESSION=agentboard-e2e bun run test:e2e
-```
+Desktop and iOS Safari optimized.

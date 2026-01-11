@@ -1,18 +1,44 @@
 # AGENTS.md
 
-## Environment
+Instructions for AI agents working on this codebase.
 
-Bun 1.x, TypeScript 5.x
+## Stack
+
+Bun 1.x, TypeScript 5.x, React 18, Hono, xterm.js, Zustand, Tailwind.
 
 ## Commands
 
+```
 bun run dev        # frontend + backend
 bun run build      # production build
 bun run lint       # oxlint
 bun run typecheck  # tsc --noEmit
-bun run test       # bun test
+bun run test       # unit tests
+```
 
 Run `bun run lint && bun run typecheck && bun run test` after changes.
+
+## Structure
+
+```
+src/server/     Hono backend, WebSocket, tmux/pty management, log parsing
+src/client/     React frontend, xterm.js terminal, Zustand stores
+src/shared/     Shared types
+```
+
+## How It Works
+
+- Single tmux session (default: `agentboard`) with one window per project
+- Backend discovers windows, streams terminal output via WebSocket
+- Parses Claude/Codex JSONL logs from `~/.claude/projects/` and `~/.codex/sessions/` for status
+- Status: unknown -> working -> waiting (derived from log events)
+
+## Key Files
+
+- `src/server/SessionManager.ts` - tmux window discovery, log parsing, status detection
+- `src/server/index.ts` - Hono routes, WebSocket handling
+- `src/client/App.tsx` - main UI, keyboard shortcuts
+- `src/client/components/Terminal.tsx` - xterm.js wrapper
 
 ## Git
 
@@ -32,28 +58,9 @@ Run `bun run lint && bun run typecheck && bun run test` after changes.
 - Small files (<500 LOC), descriptive paths, current header comments
 - Fix root causes, not symptoms
 - Simplicity > cleverness (even if it means bigger refactors)
+- Aim for 100% test coverage
 
 ## UI Testing
 
 Use the `dev-browser` skill for testing web UI changes. Headless browser
 automation with Playwright. Start server, take screenshots, verify DOM state.
-
-## Project
-
-Real-time dashboard for Claude Code sessions. Streams tmux terminal output via WebSocket, parses Claude JSONL logs for status.
-
-## Architecture
-
-- `src/server/` — Hono backend (tmux management, log parsing, WebSocket)
-- `src/client/` — React frontend (xterm.js, Zustand)
-- `src/shared/` — Shared types
-
-## Key Concepts
-
-- tmux session `agentboard` holds all windows
-- Claude logs: `~/.claude/projects/<path>/*.jsonl`
-- Status machine: unknown -> working -> waiting; needs_approval on tool stall
-
-## Ports
-
-Dev: `localhost:5173` (frontend), `localhost:4040` (backend)
