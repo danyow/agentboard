@@ -374,13 +374,11 @@ export class TerminalProxy {
     })
 
     if (result.exitCode !== 0) {
-      const error =
-        (result.stderr ? result.stderr.toString() : '') ||
-        'tmux command failed'
+      const error = result.stderr.toString() || 'tmux command failed'
       throw new Error(error)
     }
 
-    return result.stdout ? result.stdout.toString() : ''
+    return result.stdout.toString()
   }
 
   private logEvent(event: string, payload: Record<string, unknown> = {}): void {
