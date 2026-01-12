@@ -5,7 +5,9 @@ import {
   useSettingsStore,
   type SessionSortDirection,
   type SessionSortMode,
+  type ShortcutModifier,
 } from '../stores/settingsStore'
+import { getEffectiveModifier, getModifierDisplay } from '../utils/device'
 import { Switch } from './Switch'
 
 interface SettingsChangeFlags {
@@ -39,6 +41,10 @@ export default function SettingsModal({
   )
   const useWebGL = useSettingsStore((state) => state.useWebGL)
   const setUseWebGL = useSettingsStore((state) => state.setUseWebGL)
+  const shortcutModifier = useSettingsStore((state) => state.shortcutModifier)
+  const setShortcutModifier = useSettingsStore(
+    (state) => state.setShortcutModifier
+  )
 
   const [draftDir, setDraftDir] = useState(defaultProjectDir)
   const [draftCommand, setDraftCommand] = useState(defaultCommand)
@@ -47,6 +53,9 @@ export default function SettingsModal({
   const [draftSortDirection, setDraftSortDirection] =
     useState<SessionSortDirection>(sessionSortDirection)
   const [draftUseWebGL, setDraftUseWebGL] = useState(useWebGL)
+  const [draftShortcutModifier, setDraftShortcutModifier] = useState<
+    ShortcutModifier | 'auto'
+  >(shortcutModifier)
 
   useEffect(() => {
     if (isOpen) {
@@ -55,6 +64,7 @@ export default function SettingsModal({
       setDraftSortMode(sessionSortMode)
       setDraftSortDirection(sessionSortDirection)
       setDraftUseWebGL(useWebGL)
+      setDraftShortcutModifier(shortcutModifier)
     }
   }, [
     defaultCommand,
@@ -62,6 +72,7 @@ export default function SettingsModal({
     sessionSortMode,
     sessionSortDirection,
     useWebGL,
+    shortcutModifier,
     isOpen,
   ])
 
@@ -79,6 +90,7 @@ export default function SettingsModal({
     setSessionSortMode(draftSortMode)
     setSessionSortDirection(draftSortDirection)
     setUseWebGL(draftUseWebGL)
+    setShortcutModifier(draftShortcutModifier)
     onClose({ webglChanged })
   }
 
@@ -198,6 +210,33 @@ export default function SettingsModal({
                 Terminal will reload when saved
               </p>
             )}
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <label className="mb-2 block text-xs text-secondary">
+              Keyboard Shortcut Modifier
+            </label>
+            <div className="grid grid-cols-5 gap-1">
+              {(
+                ['auto', 'ctrl-option', 'ctrl-shift', 'cmd-option', 'cmd-shift'] as const
+              ).map((mod) => (
+                <button
+                  key={mod}
+                  type="button"
+                  className={`btn text-xs px-2 ${draftShortcutModifier === mod ? 'btn-primary' : ''}`}
+                  onClick={() => setDraftShortcutModifier(mod)}
+                >
+                  {mod === 'auto'
+                    ? 'Auto'
+                    : getModifierDisplay(mod)}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1.5 text-[10px] text-muted">
+              {draftShortcutModifier === 'auto'
+                ? `Platform default: ${getModifierDisplay(getEffectiveModifier('auto'))}`
+                : `Shortcuts: ${getModifierDisplay(draftShortcutModifier)}+[N/X/[/]]`}
+            </p>
           </div>
         </div>
 

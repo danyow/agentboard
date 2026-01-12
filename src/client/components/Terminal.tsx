@@ -4,7 +4,7 @@ import type { ConnectionStatus } from '../stores/sessionStore'
 import { useTerminal } from '../hooks/useTerminal'
 import { useThemeStore, terminalThemes } from '../stores/themeStore'
 import { useSettingsStore } from '../stores/settingsStore'
-import { isIOSDevice, getNavShortcutMod } from '../utils/device'
+import { isIOSDevice, getEffectiveModifier, getModifierDisplay } from '../utils/device'
 import TerminalControls from './TerminalControls'
 import { PlusIcon, XCloseIcon, DotsVerticalIcon } from '@untitledui-icons/react/line'
 
@@ -73,6 +73,8 @@ export default function Terminal({
   const toggleTheme = useThemeStore((state) => state.toggleTheme)
   const terminalTheme = terminalThemes[theme]
   const useWebGL = useSettingsStore((state) => state.useWebGL)
+  const shortcutModifier = useSettingsStore((state) => state.shortcutModifier)
+  const modDisplay = getModifierDisplay(getEffectiveModifier(shortcutModifier))
   const isiOS = isIOSDevice()
   const [showScrollButton, setShowScrollButton] = useState(false)
   const [isSelectingText, setIsSelectingText] = useState(false)
@@ -534,7 +536,7 @@ export default function Terminal({
             <button
               onClick={onNewSession}
               className="flex h-7 w-7 items-center justify-center rounded bg-accent text-white hover:bg-accent/90 active:scale-95 transition-all md:hidden"
-              title={`New session (${getNavShortcutMod()}N)`}
+              title={`New session (${modDisplay}N)`}
               aria-label="New session"
             >
               <PlusIcon width={16} height={16} />
@@ -545,7 +547,7 @@ export default function Terminal({
               <button
                 onClick={() => setShowEndConfirm(true)}
                 className="flex h-7 w-7 items-center justify-center rounded bg-danger/10 border border-danger/30 text-danger hover:bg-danger/20 active:scale-95 transition-all"
-                title={`Kill session (${getNavShortcutMod()}X)`}
+                title={`Kill session (${modDisplay}X)`}
                 aria-label="Kill session"
               >
                 <XCloseIcon width={16} height={16} />

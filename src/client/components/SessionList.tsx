@@ -5,7 +5,7 @@ import type { Session } from '@shared/types'
 import { sortSessions } from '../utils/sessions'
 import { getPathLeaf } from '../utils/sessionLabel'
 import { useSettingsStore } from '../stores/settingsStore'
-import { getNavShortcutMod } from '../utils/device'
+import { getEffectiveModifier, getModifierDisplay } from '../utils/device'
 import AgentIcon from './AgentIcon'
 
 interface SessionListProps {
@@ -44,6 +44,8 @@ export default function SessionList({
   useTimestampRefresh()
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
   const prefersReducedMotion = useReducedMotion()
+  const shortcutModifier = useSettingsStore((state) => state.shortcutModifier)
+  const modDisplay = getModifierDisplay(getEffectiveModifier(shortcutModifier))
   const sessionSortMode = useSettingsStore((state) => state.sessionSortMode)
   const sessionSortDirection = useSettingsStore(
     (state) => state.sessionSortDirection
@@ -121,9 +123,9 @@ export default function SessionList({
       {/* Keyboard shortcuts hint */}
       <div className="hidden shrink-0 border-t border-border px-3 py-2 md:block">
         <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted">
-          <span>{getNavShortcutMod()}[ ] nav</span>
-          <span>{getNavShortcutMod()}N new</span>
-          <span>{getNavShortcutMod()}X kill</span>
+          <span>{modDisplay}[ ] nav</span>
+          <span>{modDisplay}N new</span>
+          <span>{modDisplay}X kill</span>
         </div>
       </div>
     </aside>

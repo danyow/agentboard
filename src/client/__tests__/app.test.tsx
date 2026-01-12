@@ -273,6 +273,7 @@ describe('App', () => {
     act(() => {
       keyHandler({
         key: ']',
+        code: 'BracketRight',
         ctrlKey: true,
         shiftKey: true,
         altKey: false,
@@ -289,6 +290,7 @@ describe('App', () => {
     act(() => {
       keyHandler({
         key: '[',
+        code: 'BracketLeft',
         ctrlKey: true,
         shiftKey: true,
         altKey: false,
@@ -303,6 +305,7 @@ describe('App', () => {
     act(() => {
       keyHandler({
         key: 'n',
+        code: 'KeyN',
         ctrlKey: true,
         shiftKey: true,
         altKey: false,
@@ -324,6 +327,7 @@ describe('App', () => {
     act(() => {
       keyHandler({
         key: 'x',
+        code: 'KeyX',
         ctrlKey: true,
         shiftKey: true,
         altKey: false,

@@ -120,7 +120,8 @@ describe('device helpers', () => {
         maxTouchPoints: 0,
       } as any
       expect(isMacOS()).toBe(false)
-      const nonMacShortcut = `^${String.fromCharCode(0x21e7)}`
+      // ⌃⇧ (Control+Shift symbols)
+      const nonMacShortcut = `${String.fromCharCode(0x2303)}${String.fromCharCode(0x21e7)}`
       expect(getNavShortcutMod()).toBe(nonMacShortcut)
     } finally {
       globalAny.navigator = originalNavigator

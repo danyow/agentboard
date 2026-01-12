@@ -11,6 +11,7 @@ import { useThemeStore } from './stores/themeStore'
 import { useWebSocket } from './hooks/useWebSocket'
 import { useVisualViewport } from './hooks/useVisualViewport'
 import { sortSessions } from './utils/sessions'
+import { getEffectiveModifier, matchesModifier } from './utils/device'
 
 interface ServerInfo {
   port: number
@@ -48,6 +49,7 @@ export default function App() {
   const setLastProjectPath = useSettingsStore(
     (state) => state.setLastProjectPath
   )
+  const shortcutModifier = useSettingsStore((state) => state.shortcutModifier)
 
   const { sendMessage, subscribe } = useWebSocket()
 
@@ -104,33 +106,32 @@ export default function App() {
   }, [sendMessage])
 
   useEffect(() => {
+    const effectiveModifier = getEffectiveModifier(shortcutModifier)
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return
 
-      const key = event.key
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+      // Use event.code for consistent detection across browsers
+      // (event.key fails in Chrome/Arc on macOS due to Option dead keys)
+      const code = event.code
+      const isShortcut = matchesModifier(event, effectiveModifier)
 
-      // Bracket navigation: Ctrl+Option+[ / ] (Mac) or Ctrl+Shift+[ / ] (Win/Linux)
-      // Mac: Ctrl+Option doesn't produce special chars (unlike Cmd+Option)
-      const isNavShortcut = isMac
-        ? event.ctrlKey && event.altKey && !event.metaKey && !event.shiftKey
-        : event.ctrlKey && event.shiftKey && !event.metaKey && !event.altKey
-
-      if (isNavShortcut && (key === '[' || key === ']')) {
+      // Bracket navigation: [mod]+[ / ]
+      if (isShortcut && (code === 'BracketLeft' || code === 'BracketRight')) {
         event.preventDefault()
         const currentIndex = sortedSessions.findIndex(s => s.id === selectedSessionId)
         if (currentIndex === -1 && sortedSessions.length > 0) {
           setSelectedSessionId(sortedSessions[0].id)
           return
         }
-        const delta = key === '[' ? -1 : 1
+        const delta = code === 'BracketLeft' ? -1 : 1
         const newIndex = (currentIndex + delta + sortedSessions.length) % sortedSessions.length
         setSelectedSessionId(sortedSessions[newIndex].id)
         return
       }
 
-      // New session: Ctrl+Option+N (Mac) / Ctrl+Shift+N (Win/Linux)
-      if (isNavShortcut && key.toLowerCase() === 'n') {
+      // New session: [mod]+N
+      if (isShortcut && code === 'KeyN') {
         event.preventDefault()
         if (!isModalOpen) {
           setIsModalOpen(true)
@@ -138,8 +139,8 @@ export default function App() {
         return
       }
 
-      // Kill session: Ctrl+Option+X (Mac) / Ctrl+Shift+X (Win/Linux)
-      if (isNavShortcut && key.toLowerCase() === 'x') {
+      // Kill session: [mod]+X
+      if (isShortcut && code === 'KeyX') {
         event.preventDefault()
         if (selectedSessionId && !isModalOpen) {
           handleKillSession(selectedSessionId)
@@ -150,7 +151,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isModalOpen, selectedSessionId, setSelectedSessionId, sortedSessions, handleKillSession])
+  }, [isModalOpen, selectedSessionId, setSelectedSessionId, sortedSessions, handleKillSession, shortcutModifier])
 
   const handleNewSession = () => setIsModalOpen(true)
   const handleOpenSettings = () => setIsSettingsOpen(true)

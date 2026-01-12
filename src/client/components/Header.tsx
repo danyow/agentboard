@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { ConnectionStatus } from '../stores/sessionStore'
+import { useSettingsStore } from '../stores/settingsStore'
 import { PlusIcon } from '@untitledui-icons/react/line'
-import { getNavShortcutMod } from '../utils/device'
+import { getEffectiveModifier, getModifierDisplay } from '../utils/device'
 
 interface HeaderProps {
   connectionStatus: ConnectionStatus
@@ -23,6 +24,8 @@ export default function Header({
   tailscaleIp,
 }: HeaderProps) {
   const [copied, setCopied] = useState(false)
+  const shortcutModifier = useSettingsStore((state) => state.shortcutModifier)
+  const modDisplay = getModifierDisplay(getEffectiveModifier(shortcutModifier))
 
   const handleCopyTailscaleUrl = () => {
     if (!tailscaleIp) return
@@ -55,7 +58,7 @@ export default function Header({
       <button
         onClick={onNewSession}
         className="flex h-7 w-7 items-center justify-center rounded bg-accent text-white hover:bg-accent/90 active:scale-95 transition-all"
-        title={`New session (${getNavShortcutMod()}N)`}
+        title={`New session (${modDisplay}N)`}
         aria-label="New session"
       >
         <PlusIcon width={16} height={16} />

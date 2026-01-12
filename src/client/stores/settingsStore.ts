@@ -7,6 +7,7 @@ const DEFAULT_COMMAND = 'claude'
 
 export type SessionSortMode = 'status' | 'created'
 export type SessionSortDirection = 'asc' | 'desc'
+export type ShortcutModifier = 'ctrl-option' | 'ctrl-shift' | 'cmd-option' | 'cmd-shift'
 
 interface SettingsState {
   defaultProjectDir: string
@@ -21,6 +22,8 @@ interface SettingsState {
   setSessionSortDirection: (direction: SessionSortDirection) => void
   useWebGL: boolean
   setUseWebGL: (enabled: boolean) => void
+  shortcutModifier: ShortcutModifier | 'auto'
+  setShortcutModifier: (modifier: ShortcutModifier | 'auto') => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -39,6 +42,8 @@ export const useSettingsStore = create<SettingsState>()(
         set({ sessionSortDirection: direction }),
       useWebGL: true,
       setUseWebGL: (enabled) => set({ useWebGL: enabled }),
+      shortcutModifier: 'auto',
+      setShortcutModifier: (modifier) => set({ shortcutModifier: modifier }),
     }),
     {
       name: 'agentboard-settings',
