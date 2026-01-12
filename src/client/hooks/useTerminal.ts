@@ -104,7 +104,6 @@ export function forceTextPresentation(data: string): string {
 
 interface UseTerminalOptions {
   sessionId: string | null
-  tmuxTarget: string | null
   sendMessage: (message: any) => void
   subscribe: (listener: (message: ServerMessage) => void) => () => void
   theme: ITheme
@@ -115,7 +114,6 @@ interface UseTerminalOptions {
 
 export function useTerminal({
   sessionId,
-  tmuxTarget,
   sendMessage,
   subscribe,
   theme,
@@ -139,7 +137,6 @@ export function useTerminal({
 
   // Track the currently attached session to prevent race conditions
   const attachedSessionRef = useRef<string | null>(null)
-  const attachedTargetRef = useRef<string | null>(null)
   const sendMessageRef = useRef(sendMessage)
   const onScrollChangeRef = useRef(onScrollChange)
   const useWebGLRef = useRef(useWebGL)
@@ -504,28 +501,21 @@ export function useTerminal({
     if (!terminal) return
 
     const prevAttached = attachedSessionRef.current
-    const prevTarget = attachedTargetRef.current
 
     // Detach from previous session first
     if (prevAttached && prevAttached !== sessionId) {
       sendMessage({ type: 'terminal-detach', sessionId: prevAttached })
       attachedSessionRef.current = null
-      attachedTargetRef.current = null
     }
 
     // Attach to new session
-    if (sessionId && (sessionId !== prevAttached || tmuxTarget !== prevTarget)) {
+    if (sessionId && sessionId !== prevAttached) {
       // Reset terminal before attaching
       terminal.reset()
       // Send attach message
-      sendMessage({
-        type: 'terminal-attach',
-        sessionId,
-        tmuxTarget: tmuxTarget ?? undefined,
-      })
+      sendMessage({ type: 'terminal-attach', sessionId })
       // Mark as attached
       attachedSessionRef.current = sessionId
-      attachedTargetRef.current = tmuxTarget ?? null
 
       // Fit and resize after the session switch so tmux matches current viewport
       if (fitTimer.current) {
@@ -550,9 +540,8 @@ export function useTerminal({
     // Handle deselection
     if (!sessionId && prevAttached) {
       attachedSessionRef.current = null
-      attachedTargetRef.current = null
     }
-  }, [sessionId, tmuxTarget, sendMessage, checkScrollPosition])
+  }, [sessionId, sendMessage, checkScrollPosition])
 
   // Subscribe to terminal output with idle-based buffering + synchronized output
   // This prevents flicker by: (1) batching output until stream goes idle,
