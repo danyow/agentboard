@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   DEFAULT_PROJECT_DIR,
   MAX_PRESETS,
@@ -70,8 +70,14 @@ export default function SettingsModal({
   const [newBaseCommand, setNewBaseCommand] = useState('')
   const [newModifiers, setNewModifiers] = useState('')
   const [newAgentType, setNewAgentType] = useState<'claude' | 'codex' | ''>('')
+  const reenableTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
+    if (reenableTimeoutRef.current) {
+      clearTimeout(reenableTimeoutRef.current)
+      reenableTimeoutRef.current = null
+    }
+
     if (isOpen) {
       setDraftDir(defaultProjectDir)
       setDraftPresets(commandPresets)
@@ -97,13 +103,22 @@ export default function SettingsModal({
     } else {
       // Re-enable terminal textarea when modal closes
       if (typeof document !== 'undefined') {
-        setTimeout(() => {
+        reenableTimeoutRef.current = setTimeout(() => {
+          if (typeof document === 'undefined') {
+            return
+          }
           const textarea = document.querySelector('.xterm-helper-textarea') as HTMLTextAreaElement | null
           if (textarea) {
             textarea.removeAttribute('disabled')
             textarea.focus()
           }
         }, 300)
+      }
+    }
+    return () => {
+      if (reenableTimeoutRef.current) {
+        clearTimeout(reenableTimeoutRef.current)
+        reenableTimeoutRef.current = null
       }
     }
   }, [
