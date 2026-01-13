@@ -52,9 +52,13 @@ For persistent deployment on Linux, see [systemd/README.md](systemd/README.md).
 
 ```
 PORT=4040
+HOSTNAME=0.0.0.0
 TMUX_SESSION=agentboard
 REFRESH_INTERVAL_MS=5000
 DISCOVER_PREFIXES=work,external
+PRUNE_WS_SESSIONS=true
 ```
 
-`DISCOVER_PREFIXES` lets you see windows from other tmux sessions (view-only).
+`HOSTNAME` controls which interfaces the server binds to (default `0.0.0.0` for network access; use `127.0.0.1` for local-only).
+`DISCOVER_PREFIXES` lets you discover and control windows from other tmux sessions. If unset, all sessions except the managed one are discovered.
+`PRUNE_WS_SESSIONS` removes orphaned `agentboard-ws-*` tmux sessions on startup (set to `false` to disable).

@@ -163,9 +163,11 @@ class TerminalProxyMock {
 mock.module('../../config', () => ({
   config: {
     port: 4040,
+    hostname: '0.0.0.0',
     refreshIntervalMs: 1000,
     tmuxSession: 'agentboard',
     discoverPrefixes: [],
+    pruneWsSessions: true,
     tlsCert: '',
     tlsKey: '',
   },
@@ -399,10 +401,19 @@ describe('server message handlers', () => {
   })
 
   test('returns errors for kill and rename when sessions are missing', async () => {
+    const externalSession = {
+      ...baseSession,
+      id: 'external',
+      source: 'external' as const,
+      tmuxWindow: 'work:1',
+    }
     const { serveOptions, registryInstance } = await loadIndex()
-    registryInstance.sessions = [
-      { ...baseSession, id: 'external', source: 'external' },
-    ]
+    registryInstance.sessions = [externalSession]
+
+    const killed: string[] = []
+    sessionManagerState.killWindow = (tmuxWindow: string) => {
+      killed.push(tmuxWindow)
+    }
 
     const { ws, sent } = createWs()
     const websocket = serveOptions.websocket
@@ -428,11 +439,9 @@ describe('server message handlers', () => {
     )
 
     expect(sent[0]).toEqual({ type: 'error', message: 'Session not found' })
-    expect(sent[1]).toEqual({
-      type: 'error',
-      message: 'Cannot kill external sessions',
-    })
-    expect(sent[2]).toEqual({ type: 'error', message: 'Session not found' })
+    // External sessions can now be killed
+    expect(killed).toEqual([externalSession.tmuxWindow])
+    expect(sent[1]).toEqual({ type: 'error', message: 'Session not found' })
   })
 
   test('handles kill and rename success paths', async () => {

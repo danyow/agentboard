@@ -2,9 +2,11 @@ import { afterEach, describe, expect, test } from 'bun:test'
 
 const ORIGINAL_ENV = {
   PORT: process.env.PORT,
+  HOSTNAME: process.env.HOSTNAME,
   TMUX_SESSION: process.env.TMUX_SESSION,
   REFRESH_INTERVAL_MS: process.env.REFRESH_INTERVAL_MS,
   DISCOVER_PREFIXES: process.env.DISCOVER_PREFIXES,
+  PRUNE_WS_SESSIONS: process.env.PRUNE_WS_SESSIONS,
   TLS_CERT: process.env.TLS_CERT,
   TLS_KEY: process.env.TLS_KEY,
 }
@@ -27,9 +29,11 @@ async function loadConfig(tag: string) {
   const module = await import(modulePath)
   return module.config as {
     port: number
+    hostname: string
     tmuxSession: string
     refreshIntervalMs: number
     discoverPrefixes: string[]
+    pruneWsSessions: boolean
     tlsCert: string
     tlsKey: string
   }
@@ -47,26 +51,32 @@ describe('config', () => {
 
     const config = await loadConfig('defaults')
     expect(config.port).toBe(4040)
+    expect(config.hostname).toBe('0.0.0.0')
     expect(config.tmuxSession).toBe('agentboard')
     expect(config.refreshIntervalMs).toBe(2000)
     expect(config.discoverPrefixes).toEqual([])
+    expect(config.pruneWsSessions).toBe(true)
     expect(config.tlsCert).toBe('')
     expect(config.tlsKey).toBe('')
   })
 
   test('parses env overrides and trims discover prefixes', async () => {
     process.env.PORT = '9090'
+    process.env.HOSTNAME = '127.0.0.1'
     process.env.TMUX_SESSION = 'demo'
     process.env.REFRESH_INTERVAL_MS = '3000'
     process.env.DISCOVER_PREFIXES = ' alpha, beta ,,gamma '
+    process.env.PRUNE_WS_SESSIONS = 'false'
     process.env.TLS_CERT = '/tmp/cert.pem'
     process.env.TLS_KEY = '/tmp/key.pem'
 
     const config = await loadConfig('overrides')
     expect(config.port).toBe(9090)
+    expect(config.hostname).toBe('127.0.0.1')
     expect(config.tmuxSession).toBe('demo')
     expect(config.refreshIntervalMs).toBe(3000)
     expect(config.discoverPrefixes).toEqual(['alpha', 'beta', 'gamma'])
+    expect(config.pruneWsSessions).toBe(false)
     expect(config.tlsCert).toBe('/tmp/cert.pem')
     expect(config.tlsKey).toBe('/tmp/key.pem')
   })

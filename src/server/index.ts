@@ -71,6 +71,65 @@ function getTailscaleIp(): string | null {
   return null
 }
 
+function pruneOrphanedWsSessions(): void {
+  if (!config.pruneWsSessions) {
+    return
+  }
+
+  const prefix = `${config.tmuxSession}-ws-`
+  if (!prefix) {
+    return
+  }
+
+  let result: ReturnType<typeof Bun.spawnSync>
+  try {
+    result = Bun.spawnSync(
+      ['tmux', 'list-sessions', '-F', '#{session_name}\t#{session_attached}'],
+      {
+        stdout: 'pipe',
+        stderr: 'pipe',
+      }
+    )
+  } catch {
+    return
+  }
+
+  if (result.exitCode !== 0) {
+    return
+  }
+
+  const output = result.stdout?.toString() ?? ''
+  if (!output) {
+    return
+  }
+  const lines = output.split('\n')
+  let pruned = 0
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+    const [name, attachedRaw] = trimmed.split('\t')
+    if (!name || !name.startsWith(prefix)) continue
+    const attached = Number.parseInt(attachedRaw ?? '', 10)
+    if (Number.isNaN(attached) || attached > 0) continue
+    try {
+      const killResult = Bun.spawnSync(['tmux', 'kill-session', '-t', name], {
+        stdout: 'pipe',
+        stderr: 'pipe',
+      })
+      if (killResult.exitCode === 0) {
+        pruned += 1
+      }
+    } catch {
+      // Ignore kill errors
+    }
+  }
+
+  if (pruned > 0) {
+    console.log(`[startup] Pruned ${pruned} orphaned ws sessions`)
+  }
+}
+
 const MAX_FIELD_LENGTH = 4096
 const MAX_DIRECTORY_ENTRIES = 200
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_.:@-]+$/
@@ -87,6 +146,7 @@ function createConnectionId(): string {
 
 checkPortAvailable(config.port)
 ensureTmux()
+pruneOrphanedWsSessions()
 
 const app = new Hono()
 const sessionManager = new SessionManager()
@@ -293,6 +353,7 @@ const tlsEnabled = config.tlsCert && config.tlsKey
 
 Bun.serve<WSData>({
   port: config.port,
+  hostname: config.hostname,
   ...(tlsEnabled && {
     tls: {
       cert: Bun.file(config.tlsCert),
@@ -335,7 +396,14 @@ Bun.serve<WSData>({
 })
 
 const protocol = tlsEnabled ? 'https' : 'http'
-console.log(`Agentboard server running on ${protocol}://localhost:${config.port}`)
+const displayHost = config.hostname === '0.0.0.0' ? 'localhost' : config.hostname
+console.log(`Agentboard server running on ${protocol}://${displayHost}:${config.port}`)
+if (config.hostname === '0.0.0.0') {
+  const tsIp = getTailscaleIp()
+  if (tsIp) {
+    console.log(`  Also accessible at: ${protocol}://${tsIp}:${config.port}`)
+  }
+}
 
 // Cleanup all terminals on server shutdown
 function cleanupAllTerminals() {
@@ -462,10 +530,6 @@ function handleKill(sessionId: string, ws: ServerWebSocket<WSData>) {
   const session = registry.get(sessionId)
   if (!session) {
     send(ws, { type: 'error', message: 'Session not found' })
-    return
-  }
-  if (session.source !== 'managed') {
-    send(ws, { type: 'error', message: 'Cannot kill external sessions' })
     return
   }
 

@@ -474,6 +474,83 @@ describe('SessionManager', () => {
     }
   })
 
+  test('listWindows discovers external sessions when prefixes are unset', () => {
+    const managedSession = 'agentboard'
+    const externalSession = 'work'
+    const wsSession = `${managedSession}-ws-orphan`
+    const runner = createTmuxRunner(
+      [
+        {
+          name: managedSession,
+          windows: [
+            {
+              id: '1',
+              index: 1,
+              name: 'alpha',
+              path: '/tmp/alpha',
+              activity: 0,
+              command: 'claude',
+            },
+          ],
+        },
+        {
+          name: externalSession,
+          windows: [
+            {
+              id: '2',
+              index: 2,
+              name: 'bravo',
+              path: '/tmp/bravo',
+              activity: 0,
+              command: 'codex',
+            },
+          ],
+        },
+        {
+          name: wsSession,
+          windows: [
+            {
+              id: '9',
+              index: 9,
+              name: 'ws',
+              path: '/tmp/ws',
+              activity: 0,
+              command: '',
+            },
+          ],
+        },
+      ],
+      1
+    )
+
+    const manager = new SessionManager(managedSession, {
+      runTmux: runner.runTmux,
+      capturePaneContent: () => makePaneCapture(''),
+      now: () => 1700000000000,
+    })
+
+    const originalPrefixes = config.discoverPrefixes
+    config.discoverPrefixes = []
+    try {
+      const sessions = manager.listWindows()
+      const managed = sessions.find(
+        (session) => session.tmuxWindow === `${managedSession}:1`
+      )
+      const external = sessions.find(
+        (session) => session.tmuxWindow === `${externalSession}:2`
+      )
+      const ws = sessions.find(
+        (session) => session.tmuxWindow === `${wsSession}:9`
+      )
+
+      expect(managed?.source).toBe('managed')
+      expect(external?.source).toBe('external')
+      expect(ws).toBeUndefined()
+    } finally {
+      config.discoverPrefixes = originalPrefixes
+    }
+  })
+
   test('listWindows falls back when tmux format keys are missing', () => {
     const sessionName = 'agentboard-format-fallback'
     const calls: string[][] = []

@@ -194,13 +194,18 @@ export class SessionManager {
   }
 
   private listExternalWindows(): Session[] {
-    if (config.discoverPrefixes.length === 0) {
-      return []
-    }
-
-    const sessions = this.listSessions().filter((sessionName) =>
-      config.discoverPrefixes.some((prefix) => sessionName.startsWith(prefix))
+    const wsPrefix = `${this.sessionName}-ws-`
+    const allSessions = this.listSessions().filter(
+      (sessionName) => !sessionName.startsWith(wsPrefix)
     )
+    const sessions =
+      config.discoverPrefixes.length === 0
+        ? allSessions.filter((sessionName) => sessionName !== this.sessionName)
+        : allSessions.filter((sessionName) =>
+            config.discoverPrefixes.some((prefix) =>
+              sessionName.startsWith(prefix)
+            )
+          )
 
     return sessions.flatMap((sessionName) =>
       this.listWindowsForSession(sessionName, 'external')
