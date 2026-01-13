@@ -110,9 +110,10 @@ describe('NewSessionModal component', () => {
       )
     })
 
+    // With new field order: modifiers/command (index 0), project path (index 1), name (index 2)
     const inputs = renderer.root.findAllByType('input')
-    const projectInput = inputs[0]
-    const nameInput = inputs[1]
+    const projectInput = inputs[1]
+    const nameInput = inputs[2]
 
     act(() => {
       projectInput.props.onChange({ target: { value: 'repo' } })
@@ -130,7 +131,8 @@ describe('NewSessionModal component', () => {
       customButton.props.onClick()
     })
 
-    const commandInput = renderer.root.findAllByType('input')[2]
+    // Custom command input is now at index 0 (first in the form)
+    const commandInput = renderer.root.findAllByType('input')[0]
 
     act(() => {
       commandInput.props.onChange({ target: { value: ' bun run dev ' } })
@@ -219,9 +221,9 @@ describe('NewSessionModal component', () => {
       )
     })
 
-    // Find the modifiers input (third input after project path and name)
+    // Find the modifiers input (first input, now that Command is moved up)
     const inputs = renderer.root.findAllByType('input')
-    const modifiersInput = inputs[2]
+    const modifiersInput = inputs[0]
 
     act(() => {
       modifiersInput.props.onChange({ target: { value: '--model opus' } })

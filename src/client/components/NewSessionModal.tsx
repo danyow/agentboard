@@ -64,6 +64,8 @@ export default function NewSessionModal({
   const [isCustomMode, setIsCustomMode] = useState(false)
   const [showBrowser, setShowBrowser] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
+  const projectPathRef = useRef<HTMLInputElement>(null)
+  const defaultButtonRef = useRef<HTMLButtonElement>(null)
 
   // Get current preset
   const selectedPreset = selectedPresetId
@@ -116,6 +118,14 @@ export default function NewSessionModal({
       setIsCustomMode(true)
     }
     setCustomCommand('')
+    // Focus default button and scroll project path after DOM update
+    setTimeout(() => {
+      defaultButtonRef.current?.focus()
+      if (projectPathRef.current) {
+        const input = projectPathRef.current
+        input.scrollLeft = input.scrollWidth
+      }
+    }, 50)
   }, [activeProjectPath, commandPresets, defaultPresetId, defaultProjectDir, isOpen, lastProjectPath])
 
   useEffect(() => {
@@ -151,7 +161,10 @@ export default function NewSessionModal({
         const currentIndex = focusableElements.indexOf(activeEl)
 
         let nextIndex: number
-        if (e.shiftKey) {
+        if (currentIndex === -1) {
+          // If current element not in list, start from beginning or end
+          nextIndex = e.shiftKey ? focusableElements.length - 1 : 0
+        } else if (e.shiftKey) {
           nextIndex = currentIndex <= 0 ? focusableElements.length - 1 : currentIndex - 1
         } else {
           nextIndex = currentIndex >= focusableElements.length - 1 ? 0 : currentIndex + 1
@@ -260,43 +273,6 @@ export default function NewSessionModal({
         <div className="mt-5 space-y-4">
           <div>
             <label className="mb-1.5 block text-xs text-secondary">
-              Project Path
-            </label>
-            <div className="flex gap-2">
-              <input
-                value={projectPath}
-                onChange={(event) => setProjectPath(event.target.value)}
-                placeholder={
-                  activeProjectPath ||
-                  lastProjectPath ||
-                  defaultProjectDir ||
-                  '/Users/you/code/my-project'
-                }
-                className="input flex-1"
-                autoFocus
-              />
-              <button
-                type="button"
-                className="btn"
-                onClick={() => setShowBrowser(true)}
-              >
-                Browse
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs text-secondary">
-              Display Name
-            </label>
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="auto-generated"
-              className="input placeholder:italic"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs text-secondary">
               Command
             </label>
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Command preset">
@@ -305,6 +281,7 @@ export default function NewSessionModal({
                 return (
                   <button
                     key={option.id}
+                    ref={isActive ? defaultButtonRef : undefined}
                     type="button"
                     role="radio"
                     aria-checked={isActive}
@@ -352,7 +329,7 @@ export default function NewSessionModal({
                   value={modifiers}
                   onChange={(event) => setModifiers(event.target.value)}
                   placeholder="Modifiers (e.g., --model opus)"
-                  className="input font-mono text-sm"
+                  className="input font-mono text-xs"
                 />
               </div>
             )}
@@ -363,7 +340,7 @@ export default function NewSessionModal({
                 value={customCommand}
                 onChange={(event) => setCustomCommand(event.target.value)}
                 placeholder="Enter custom command..."
-                className="input mt-2 font-mono"
+                className="input mt-2 font-mono text-xs"
               />
             )}
 
@@ -373,6 +350,43 @@ export default function NewSessionModal({
                 Will run: {previewCommand}
               </p>
             )}
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs text-secondary">
+              Project Path
+            </label>
+            <div className="flex gap-2">
+              <input
+                ref={projectPathRef}
+                value={projectPath}
+                onChange={(event) => setProjectPath(event.target.value)}
+                placeholder={
+                  activeProjectPath ||
+                  lastProjectPath ||
+                  defaultProjectDir ||
+                  '/Users/you/code/my-project'
+                }
+                className="input flex-1 text-sm"
+              />
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setShowBrowser(true)}
+              >
+                Browse
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs text-secondary">
+              Display Name
+            </label>
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="auto-generated"
+              className="input text-sm placeholder:italic"
+            />
           </div>
         </div>
 
