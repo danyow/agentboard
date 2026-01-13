@@ -1,8 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import TestRenderer, { act } from 'react-test-renderer'
-import NewSessionModal, {
-  resolveProjectPath,
-} from '../components/NewSessionModal'
+import NewSessionModal from '../components/NewSessionModal'
 import { DEFAULT_PRESETS } from '../stores/settingsStore'
 
 const globalAny = globalThis as typeof globalThis & {
@@ -41,42 +39,6 @@ function setupDom() {
 
   return { keyHandlers }
 }
-
-describe('NewSessionModal helpers', () => {
-  test('resolves project paths with base directories', () => {
-    const resolvedBase = resolveProjectPath({
-      value: ' ',
-      activeProjectPath: ' /active ',
-      lastProjectPath: '/last',
-      defaultProjectDir: '/default',
-    })
-    expect(resolvedBase).toBe('/active')
-
-    const resolvedRelative = resolveProjectPath({
-      value: 'repo',
-      activeProjectPath: undefined,
-      lastProjectPath: '/base/',
-      defaultProjectDir: '/default',
-    })
-    expect(resolvedRelative).toBe('/base/repo')
-
-    const resolvedAbsolute = resolveProjectPath({
-      value: '/abs/path',
-      activeProjectPath: undefined,
-      lastProjectPath: null,
-      defaultProjectDir: '/default',
-    })
-    expect(resolvedAbsolute).toBe('/abs/path')
-
-    const resolvedWindows = resolveProjectPath({
-      value: 'C:\\work\\app',
-      activeProjectPath: undefined,
-      lastProjectPath: null,
-      defaultProjectDir: '/default',
-    })
-    expect(resolvedWindows).toBe('C:\\work\\app')
-  })
-})
 
 describe('NewSessionModal component', () => {
   test('submits resolved values and closes', () => {
@@ -145,7 +107,7 @@ describe('NewSessionModal component', () => {
     })
 
     expect(created).toEqual([
-      { path: '/active/repo', name: 'Alpha', command: 'bun run dev' },
+      { path: 'repo', name: 'Alpha', command: 'bun run dev' },
     ])
     expect(closed).toBe(1)
 

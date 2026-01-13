@@ -14,37 +14,6 @@ interface NewSessionModalProps {
   activeProjectPath?: string
 }
 
-export function resolveProjectPath({
-  value,
-  activeProjectPath,
-  lastProjectPath,
-  defaultProjectDir,
-}: {
-  value: string
-  activeProjectPath?: string
-  lastProjectPath?: string | null
-  defaultProjectDir: string
-}): string {
-  const trimmedValue = value.trim()
-  const baseDir =
-    activeProjectPath?.trim() || lastProjectPath || defaultProjectDir.trim()
-  if (!trimmedValue) {
-    return baseDir
-  }
-
-  const isAbsolute =
-    trimmedValue.startsWith('/') ||
-    trimmedValue.startsWith('~') ||
-    /^[A-Za-z]:[\\/]/.test(trimmedValue)
-
-  if (isAbsolute || !baseDir) {
-    return trimmedValue
-  }
-
-  const base = baseDir.replace(/[\\/]+$/, '')
-  return `${base}/${trimmedValue}`
-}
-
 export default function NewSessionModal({
   isOpen,
   onClose,
@@ -197,13 +166,8 @@ export default function NewSessionModal({
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()
-    const resolvedPath = resolveProjectPath({
-      value: projectPath,
-      activeProjectPath,
-      lastProjectPath,
-      defaultProjectDir,
-    })
-    if (!resolvedPath) {
+    const trimmedPath = projectPath.trim()
+    if (!trimmedPath) {
       return
     }
 
@@ -222,7 +186,7 @@ export default function NewSessionModal({
     }
 
     onCreate(
-      resolvedPath,
+      trimmedPath,
       name.trim() || undefined,
       finalCommand || undefined
     )
@@ -235,12 +199,7 @@ export default function NewSessionModal({
     { id: 'custom', label: 'Custom', isCustom: true },
   ]
 
-  const browserInitialPath = resolveProjectPath({
-    value: projectPath,
-    activeProjectPath,
-    lastProjectPath,
-    defaultProjectDir,
-  }) || '~'
+  const browserInitialPath = projectPath.trim() || '~'
 
   return (
     <div
@@ -260,17 +219,8 @@ export default function NewSessionModal({
         <h2 id="new-session-title" className="text-sm font-semibold uppercase tracking-wider text-primary text-balance">
           New Session
         </h2>
-        <p className="mt-2 text-xs text-muted text-pretty">
-          Enter an absolute project path or a folder name. Relative paths use
-          the base directory.
-        </p>
-        {(activeProjectPath?.trim() || lastProjectPath || defaultProjectDir.trim()) ? (
-          <p className="mt-1 text-xs text-muted">
-            Base: {activeProjectPath?.trim() || lastProjectPath || defaultProjectDir.trim()}
-          </p>
-        ) : null}
 
-        <div className="mt-5 space-y-4">
+        <div className="mt-4 space-y-4">
           <div>
             <label className="mb-1.5 block text-xs text-secondary">
               Command
@@ -314,7 +264,7 @@ export default function NewSessionModal({
                       const buttons = container?.querySelectorAll<HTMLButtonElement>('[role="radio"]')
                       buttons?.[newIndex]?.focus()
                     }}
-                    className={`btn text-xs ${isActive ? 'btn-primary' : ''}`}
+                    className={`btn text-xs focus:outline-none focus:ring-2 focus:ring-primary ${isActive ? 'btn-primary' : ''}`}
                   >
                     {option.label}
                   </button>
