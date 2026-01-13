@@ -119,22 +119,22 @@ export default function NewSessionModal({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (showBrowser) return
 
-      // Stop propagation to prevent terminal and App.tsx handlers from receiving events
-      if (typeof e.stopPropagation === 'function') e.stopPropagation()
-
       if (e.key === 'Escape') {
+        if (typeof e.stopPropagation === 'function') e.stopPropagation()
         onClose()
         return
       }
 
       if (e.key === 'Enter' && document.activeElement?.tagName !== 'INPUT') {
         e.preventDefault()
+        if (typeof e.stopPropagation === 'function') e.stopPropagation()
         formRef.current?.requestSubmit()
         return
       }
 
       if (e.key === 'Tab') {
         e.preventDefault()
+        if (typeof e.stopPropagation === 'function') e.stopPropagation()
         const focusableElements = getFocusableElements()
         if (focusableElements.length === 0) return
 
@@ -154,8 +154,8 @@ export default function NewSessionModal({
         focusableElements[nextIndex]?.focus()
       }
     }
-    window.addEventListener('keydown', handleKeyDown, true)
-    return () => window.removeEventListener('keydown', handleKeyDown, true)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose, showBrowser])
 
   if (!isOpen) {

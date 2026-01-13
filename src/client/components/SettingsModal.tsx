@@ -118,19 +118,19 @@ export default function SettingsModal({
     isOpen,
   ])
 
-  // Handle keyboard events - stop propagation to prevent terminal/App.tsx handlers
+  // Handle Escape key to close modal
   useEffect(() => {
     if (!isOpen) return
     if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (typeof e.stopPropagation === 'function') e.stopPropagation()
       if (e.key === 'Escape') {
+        if (typeof e.stopPropagation === 'function') e.stopPropagation()
         onClose()
       }
     }
-    window.addEventListener('keydown', handleKeyDown, true)
-    return () => window.removeEventListener('keydown', handleKeyDown, true)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
   if (!isOpen) {
