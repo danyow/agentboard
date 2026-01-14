@@ -231,7 +231,7 @@ body {
 }
 
 .pulse-complete {
-  animation: pulse-complete 5s ease-out forwards;
+  animation: pulse-complete 5s ease-out;
 }
 
 /* Terminal styles */

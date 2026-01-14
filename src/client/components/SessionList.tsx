@@ -166,6 +166,9 @@ function SessionRow({
     const prevStatus = prevStatusRef.current
     const currentStatus = session.status
 
+    // Always update ref first
+    prevStatusRef.current = currentStatus
+
     // Detect transition from working → waiting (not permission, which needs immediate attention)
     if (prevStatus === 'working' && currentStatus === 'waiting') {
       setIsPulsingComplete(true)
@@ -174,8 +177,6 @@ function SessionRow({
       }, 5000)
       return () => clearTimeout(timer)
     }
-
-    prevStatusRef.current = currentStatus
   }, [session.status])
 
   useEffect(() => {
