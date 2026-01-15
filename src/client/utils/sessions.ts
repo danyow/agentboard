@@ -14,6 +14,7 @@ const SESSION_STATUS_ORDER: Record<Session['status'], number> = {
 export interface SortOptions {
   mode: SessionSortMode
   direction: SessionSortDirection
+  manualOrder?: string[]
 }
 
 const DEFAULT_SORT_OPTIONS: SortOptions = {
@@ -25,7 +26,21 @@ export function sortSessions(
   sessions: Session[],
   options: SortOptions = DEFAULT_SORT_OPTIONS
 ): Session[] {
-  const { mode, direction } = options
+  const { mode, direction, manualOrder } = options
+
+  // Manual mode: sort by the order array, new sessions go to the end
+  if (mode === 'manual' && manualOrder && manualOrder.length > 0) {
+    const orderMap = new Map(manualOrder.map((id, idx) => [id, idx]))
+    return [...sessions].sort((a, b) => {
+      const aIdx = orderMap.get(a.id) ?? Infinity
+      const bIdx = orderMap.get(b.id) ?? Infinity
+      if (aIdx === Infinity && bIdx === Infinity) {
+        // Both are new sessions, sort by createdAt desc
+        return Date.parse(b.createdAt) - Date.parse(a.createdAt)
+      }
+      return aIdx - bIdx
+    })
+  }
 
   return [...sessions].sort((a, b) => {
     if (mode === 'status') {

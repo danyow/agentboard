@@ -1,5 +1,21 @@
-import { useState, useRef, useEffect, useReducer } from 'react'
+import { useState, useRef, useEffect, useReducer, useCallback } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { HandIcon } from '@untitledui-icons/react/line'
 import ChevronDownIcon from '@untitledui-icons/react/line/esm/ChevronDownIcon'
 import ChevronRightIcon from '@untitledui-icons/react/line/esm/ChevronRightIcon'
@@ -146,16 +162,72 @@ export default function SessionList({
   const shortcutModifier = useSettingsStore((state) => state.shortcutModifier)
   const modDisplay = getModifierDisplay(getEffectiveModifier(shortcutModifier))
   const sessionSortMode = useSettingsStore((state) => state.sessionSortMode)
+  const setSessionSortMode = useSettingsStore((state) => state.setSessionSortMode)
   const sessionSortDirection = useSettingsStore(
     (state) => state.sessionSortDirection
   )
+  const manualSessionOrder = useSettingsStore((state) => state.manualSessionOrder)
+  const setManualSessionOrder = useSettingsStore((state) => state.setManualSessionOrder)
   const showSessionIdPrefix = useSettingsStore(
     (state) => state.showSessionIdPrefix
   )
   const sortedSessions = sortSessions(sessions, {
     mode: sessionSortMode,
     direction: sessionSortDirection,
+    manualOrder: manualSessionOrder,
   })
+
+  // Drag-and-drop setup
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px movement to start drag (prevents accidental drags)
+      },
+    })
+  )
+
+  // Track active drag state for drop indicator
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [overId, setOverId] = useState<string | null>(null)
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string)
+  }, [])
+
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    setOverId(event.over?.id as string | null)
+  }, [])
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event
+      setActiveId(null)
+      setOverId(null)
+
+      if (!over || active.id === over.id) return
+
+      const oldIndex = sortedSessions.findIndex((s) => s.id === active.id)
+      const newIndex = sortedSessions.findIndex((s) => s.id === over.id)
+      if (oldIndex === -1 || newIndex === -1) return
+
+      // Create new order array
+      const newOrder = sortedSessions.map((s) => s.id)
+      const [removed] = newOrder.splice(oldIndex, 1)
+      newOrder.splice(newIndex, 0, removed)
+
+      // Switch to manual mode and update order
+      if (sessionSortMode !== 'manual') {
+        setSessionSortMode('manual')
+      }
+      setManualSessionOrder(newOrder)
+    },
+    [sortedSessions, sessionSortMode, setSessionSortMode, setManualSessionOrder]
+  )
+
+  const handleDragCancel = useCallback(() => {
+    setActiveId(null)
+    setOverId(null)
+  }, [])
 
   const handleRename = (sessionId: string, newName: string) => {
     onRename(sessionId, newName)
@@ -199,46 +271,50 @@ export default function SessionList({
             No sessions
           </div>
         ) : (
-          <div>
-            <AnimatePresence initial={false}>
-              {sortedSessions.map((session) => {
-                const isNew = newlyActiveIds.has(session.id)
-                // Delay entry animation for cards transitioning from inactive
-                const entryDelay = isNew ? ENTRY_DELAY / 1000 : 0
-                return (
-                <motion.div
-                  key={session.id}
-                  layout={!prefersReducedMotion}
-                  initial={prefersReducedMotion ? false : { opacity: 0, y: -16, scale: 0.85 }}
-                  animate={
-                    prefersReducedMotion
-                      ? { opacity: 1, y: 0 }
-                      : isNew
-                        ? { opacity: 1, y: 0, scale: [1.06, 0.98, 1] }
-                        : { opacity: 1, y: 0, scale: 1 }
-                  }
-                  exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.9 }}
-                  transition={prefersReducedMotion ? { duration: 0 } : {
-                    layout: { type: 'spring', stiffness: 500, damping: 35, delay: entryDelay },
-                    opacity: { duration: EXIT_DURATION / 1000, delay: entryDelay },
-                    y: { duration: EXIT_DURATION / 1000, ease: 'easeOut', delay: entryDelay },
-                    scale: { duration: 0.4, ease: [0.34, 1.56, 0.64, 1], delay: entryDelay },
-                  }}
-                >
-                  <SessionRow
-                    session={session}
-                    isSelected={session.id === selectedSessionId}
-                    isEditing={session.id === editingSessionId}
-                    showSessionIdPrefix={showSessionIdPrefix}
-                    onSelect={() => onSelect(session.id)}
-                    onStartEdit={() => setEditingSessionId(session.id)}
-                    onCancelEdit={() => setEditingSessionId(null)}
-                    onRename={(newName) => handleRename(session.id, newName)}
-                  />
-                </motion.div>
-              )})}
-            </AnimatePresence>
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+          >
+            <SortableContext
+              items={sortedSessions.map((s) => s.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div>
+                <AnimatePresence initial={false}>
+                  {sortedSessions.map((session, index) => {
+                    const isNew = newlyActiveIds.has(session.id)
+                    const entryDelay = isNew ? ENTRY_DELAY / 1000 : 0
+                    // Calculate drop indicator position
+                    const activeIndex = activeId ? sortedSessions.findIndex((s) => s.id === activeId) : -1
+                    const isOver = overId === session.id && activeId !== session.id
+                    const showDropIndicator = isOver ? (activeIndex > index ? 'above' : 'below') : null
+                    return (
+                      <SortableSessionItem
+                        key={session.id}
+                        session={session}
+                        isNew={isNew}
+                        entryDelay={entryDelay}
+                        exitDuration={EXIT_DURATION}
+                        prefersReducedMotion={prefersReducedMotion}
+                        isSelected={session.id === selectedSessionId}
+                        isEditing={session.id === editingSessionId}
+                        showSessionIdPrefix={showSessionIdPrefix}
+                        dropIndicator={showDropIndicator}
+                        onSelect={() => onSelect(session.id)}
+                        onStartEdit={() => setEditingSessionId(session.id)}
+                        onCancelEdit={() => setEditingSessionId(null)}
+                        onRename={(newName) => handleRename(session.id, newName)}
+                      />
+                    )
+                  })}
+                </AnimatePresence>
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
 
         {inactiveSessions.length > 0 && (
@@ -337,11 +413,105 @@ export default function SessionList({
   )
 }
 
+interface SortableSessionItemProps {
+  session: Session
+  isNew: boolean
+  entryDelay: number
+  exitDuration: number
+  prefersReducedMotion: boolean | null
+  isSelected: boolean
+  isEditing: boolean
+  showSessionIdPrefix: boolean
+  dropIndicator: 'above' | 'below' | null
+  onSelect: () => void
+  onStartEdit: () => void
+  onCancelEdit: () => void
+  onRename: (newName: string) => void
+}
+
+function SortableSessionItem({
+  session,
+  isNew,
+  entryDelay,
+  exitDuration,
+  prefersReducedMotion,
+  isSelected,
+  isEditing,
+  showSessionIdPrefix,
+  dropIndicator,
+  onSelect,
+  onStartEdit,
+  onCancelEdit,
+  onRename,
+}: SortableSessionItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: session.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+    opacity: isDragging ? 0.9 : undefined,
+  }
+
+  return (
+    <motion.div
+      ref={setNodeRef}
+      style={style}
+      className="relative"
+      layout={!prefersReducedMotion && !isDragging}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: -16, scale: 0.85 }}
+      animate={
+        prefersReducedMotion
+          ? { opacity: 1, y: 0 }
+          : isNew
+            ? { opacity: 1, y: 0, scale: [1.06, 0.98, 1] }
+            : { opacity: 1, y: 0, scale: 1 }
+      }
+      exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.9 }}
+      transition={prefersReducedMotion ? { duration: 0 } : {
+        layout: { type: 'spring', stiffness: 500, damping: 35, delay: entryDelay },
+        opacity: { duration: exitDuration / 1000, delay: entryDelay },
+        y: { duration: exitDuration / 1000, ease: 'easeOut', delay: entryDelay },
+        scale: { duration: 0.4, ease: [0.34, 1.56, 0.64, 1], delay: entryDelay },
+      }}
+      {...attributes}
+      {...listeners}
+    >
+      {/* Drop indicator line */}
+      {dropIndicator === 'above' && (
+        <div className="absolute -top-px left-3 right-3 h-0.5 border-t-2 border-dashed border-accent" />
+      )}
+      <SessionRow
+        session={session}
+        isSelected={isSelected}
+        isEditing={isEditing}
+        showSessionIdPrefix={showSessionIdPrefix}
+        isDragging={isDragging}
+        onSelect={onSelect}
+        onStartEdit={onStartEdit}
+        onCancelEdit={onCancelEdit}
+        onRename={onRename}
+      />
+      {dropIndicator === 'below' && (
+        <div className="absolute -bottom-px left-3 right-3 h-0.5 border-t-2 border-dashed border-accent" />
+      )}
+    </motion.div>
+  )
+}
+
 interface SessionRowProps {
   session: Session
   isSelected: boolean
   isEditing: boolean
   showSessionIdPrefix: boolean
+  isDragging?: boolean
   onSelect: () => void
   onStartEdit: () => void
   onCancelEdit: () => void
@@ -353,6 +523,7 @@ function SessionRow({
   isSelected,
   isEditing,
   showSessionIdPrefix,
+  isDragging = false,
   onSelect,
   onStartEdit,
   onCancelEdit,
@@ -425,6 +596,7 @@ function SessionRow({
   }
 
   const handleTouchStart = () => {
+    if (isDragging) return
     longPressTimer.current = setTimeout(() => {
       onStartEdit()
     }, 500)
@@ -439,12 +611,12 @@ function SessionRow({
 
   return (
     <div
-      className={`session-row group cursor-pointer px-3 py-2 ${isSelected ? 'selected' : ''}`}
+      className={`session-row group cursor-pointer px-3 py-2 ${isSelected ? 'selected' : ''} ${isDragging ? 'cursor-grabbing shadow-lg ring-1 ring-accent/30 bg-elevated' : 'cursor-grab'}`}
       role="button"
       tabIndex={0}
       data-testid="session-card"
       data-session-id={session.id}
-      onClick={onSelect}
+      onClick={isDragging ? undefined : onSelect}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') onSelect()
       }}

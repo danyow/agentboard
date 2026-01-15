@@ -6,7 +6,7 @@ const DEFAULT_PROJECT_DIR = '~/Documents/GitHub'
 const DEFAULT_COMMAND = 'claude'
 const MAX_PRESETS = 50
 
-export type SessionSortMode = 'status' | 'created'
+export type SessionSortMode = 'status' | 'created' | 'manual'
 export type SessionSortDirection = 'asc' | 'desc'
 export type ShortcutModifier = 'ctrl-option' | 'ctrl-shift' | 'cmd-option' | 'cmd-shift'
 
@@ -84,6 +84,8 @@ interface SettingsState {
   setSessionSortMode: (mode: SessionSortMode) => void
   sessionSortDirection: SessionSortDirection
   setSessionSortDirection: (direction: SessionSortDirection) => void
+  manualSessionOrder: string[]
+  setManualSessionOrder: (order: string[]) => void
   useWebGL: boolean
   setUseWebGL: (enabled: boolean) => void
   fontSize: number
@@ -124,6 +126,8 @@ export const useSettingsStore = create<SettingsState>()(
       sessionSortDirection: 'desc',
       setSessionSortDirection: (direction) =>
         set({ sessionSortDirection: direction }),
+      manualSessionOrder: [],
+      setManualSessionOrder: (order) => set({ manualSessionOrder: order }),
       useWebGL: true,
       setUseWebGL: (enabled) => set({ useWebGL: enabled }),
       fontSize: 13,
@@ -177,6 +181,11 @@ export const useSettingsStore = create<SettingsState>()(
       name: 'agentboard-settings',
       storage: createJSONStorage(() => safeStorage),
       version: 1,
+      partialize: (state) => {
+        // Exclude manualSessionOrder from persistence (session-only state)
+        const { manualSessionOrder: _, ...rest } = state
+        return rest
+      },
       migrate: (persistedState: unknown, version: number) => {
         const state = persistedState as Record<string, unknown>
 

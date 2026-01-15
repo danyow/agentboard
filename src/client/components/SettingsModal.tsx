@@ -424,7 +424,7 @@ export default function SettingsModal({
                 className={`btn flex-1 ${draftSortMode === 'created' ? 'btn-primary' : ''}`}
                 onClick={() => setDraftSortMode('created')}
               >
-                Creation Date
+                Created
               </button>
               <button
                 type="button"
@@ -433,11 +433,20 @@ export default function SettingsModal({
               >
                 Status
               </button>
+              <button
+                type="button"
+                className={`btn flex-1 ${draftSortMode === 'manual' ? 'btn-primary' : ''}`}
+                onClick={() => setDraftSortMode('manual')}
+              >
+                Manual
+              </button>
             </div>
             <p className="mt-1.5 text-[10px] text-muted">
               {draftSortMode === 'status'
                 ? 'Sessions auto-resort by status (waiting, working, unknown)'
-                : 'Sessions stay in creation order'}
+                : draftSortMode === 'manual'
+                  ? 'Drag sessions to reorder manually'
+                  : 'Sessions stay in creation order'}
             </p>
           </div>
 
