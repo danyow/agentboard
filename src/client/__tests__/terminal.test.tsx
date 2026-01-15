@@ -287,27 +287,15 @@ describe('Terminal', () => {
       moreButton.props.onClick()
     })
 
-    const buttons = renderer.root.findAllByType('button')
-    const themeButton = buttons.find(
-      (button) => button.props.children === 'Light Mode'
-    )
-
-    if (!themeButton) {
-      throw new Error('Expected theme button')
-    }
-
-    act(() => {
-      themeButton.props.onClick()
-    })
-
-    expect(useThemeStore.getState().theme).toBe('light')
-
-    act(() => {
-      moreButton.props.onClick()
-    })
-
+    // Find settings button (now has icon + text as children)
     const settingsButton = renderer.root.findAllByType('button').find(
-      (button) => button.props.children === 'Settings'
+      (button) => {
+        const children = button.props.children
+        if (Array.isArray(children)) {
+          return children.some((child: unknown) => child === 'Settings')
+        }
+        return children === 'Settings'
+      }
     )
 
     if (!settingsButton) {
@@ -360,8 +348,15 @@ describe('Terminal', () => {
       moreButton.props.onClick()
     })
 
+    // Find rename button (now has icon + text as children)
     const renameButton = renderer.root.findAllByType('button').find(
-      (button) => button.props.children === 'Rename'
+      (button) => {
+        const children = button.props.children
+        if (Array.isArray(children)) {
+          return children.some((child: unknown) => child === 'Rename')
+        }
+        return children === 'Rename'
+      }
     )
 
     if (!renameButton) {

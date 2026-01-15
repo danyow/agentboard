@@ -44,6 +44,8 @@ export default function SettingsModal({
   )
   const useWebGL = useSettingsStore((state) => state.useWebGL)
   const setUseWebGL = useSettingsStore((state) => state.setUseWebGL)
+  const fontSize = useSettingsStore((state) => state.fontSize)
+  const setFontSize = useSettingsStore((state) => state.setFontSize)
   const lineHeight = useSettingsStore((state) => state.lineHeight)
   const setLineHeight = useSettingsStore((state) => state.setLineHeight)
   const shortcutModifier = useSettingsStore((state) => state.shortcutModifier)
@@ -65,6 +67,7 @@ export default function SettingsModal({
   const [draftSortDirection, setDraftSortDirection] =
     useState<SessionSortDirection>(sessionSortDirection)
   const [draftUseWebGL, setDraftUseWebGL] = useState(useWebGL)
+  const [draftFontSize, setDraftFontSize] = useState(fontSize)
   const [draftLineHeight, setDraftLineHeight] = useState(lineHeight)
   const [draftShortcutModifier, setDraftShortcutModifier] = useState<
     ShortcutModifier | 'auto'
@@ -94,6 +97,7 @@ export default function SettingsModal({
       setDraftSortMode(sessionSortMode)
       setDraftSortDirection(sessionSortDirection)
       setDraftUseWebGL(useWebGL)
+      setDraftFontSize(fontSize)
       setDraftLineHeight(lineHeight)
       setDraftShortcutModifier(shortcutModifier)
       setDraftShowSessionIdSuffix(showSessionIdPrefix)
@@ -138,6 +142,7 @@ export default function SettingsModal({
     sessionSortMode,
     sessionSortDirection,
     useWebGL,
+    fontSize,
     lineHeight,
     shortcutModifier,
     showSessionIdPrefix,
@@ -173,6 +178,7 @@ export default function SettingsModal({
     setSessionSortMode(draftSortMode)
     setSessionSortDirection(draftSortDirection)
     setUseWebGL(draftUseWebGL)
+    setFontSize(draftFontSize)
     setLineHeight(draftLineHeight)
     setShortcutModifier(draftShortcutModifier)
     setShowSessionIdPrefix(draftShowSessionIdPrefix)
@@ -493,6 +499,32 @@ export default function SettingsModal({
                 Terminal will reload when saved
               </p>
             )}
+
+            <div className="mt-4 flex items-center justify-between">
+              <div>
+                <div className="text-sm text-primary">Font Size</div>
+                <div className="text-[10px] text-muted">
+                  Terminal text size in pixels (8-24)
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDraftFontSize(Math.max(8, draftFontSize - 1))}
+                  className="flex h-7 w-7 items-center justify-center rounded bg-surface border border-border text-secondary hover:bg-hover"
+                >
+                  <span className="text-sm font-bold">−</span>
+                </button>
+                <span className="text-sm text-secondary w-6 text-center">{draftFontSize}</span>
+                <button
+                  type="button"
+                  onClick={() => setDraftFontSize(Math.min(24, draftFontSize + 1))}
+                  className="flex h-7 w-7 items-center justify-center rounded bg-surface border border-border text-secondary hover:bg-hover"
+                >
+                  <span className="text-sm font-bold">+</span>
+                </button>
+              </div>
+            </div>
 
             <div className="mt-4 flex items-center justify-between">
               <div>

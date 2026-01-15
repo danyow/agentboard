@@ -8,6 +8,8 @@ import { isIOSDevice, getEffectiveModifier, getModifierDisplay } from '../utils/
 import TerminalControls from './TerminalControls'
 import SessionDrawer from './SessionDrawer'
 import { PlusIcon, XCloseIcon, DotsVerticalIcon, Menu01Icon } from '@untitledui-icons/react/line'
+import Edit05Icon from '@untitledui-icons/react/line/esm/Edit05Icon'
+import Settings01Icon from '@untitledui-icons/react/line/esm/Settings01Icon'
 
 interface TerminalProps {
   session: Session | null
@@ -80,9 +82,9 @@ export default function Terminal({
 }: TerminalProps) {
   void _onClose // Keep for interface compatibility
   const theme = useThemeStore((state) => state.theme)
-  const toggleTheme = useThemeStore((state) => state.toggleTheme)
   const terminalTheme = terminalThemes[theme]
   const useWebGL = useSettingsStore((state) => state.useWebGL)
+  const fontSize = useSettingsStore((state) => state.fontSize)
   const lineHeight = useSettingsStore((state) => state.lineHeight)
   const shortcutModifier = useSettingsStore((state) => state.shortcutModifier)
   const modDisplay = getModifierDisplay(getEffectiveModifier(shortcutModifier))
@@ -104,18 +106,6 @@ export default function Terminal({
   const moreMenuRef = useRef<HTMLDivElement>(null)
   const renameInputRef = useRef<HTMLInputElement>(null)
   const endSessionButtonRef = useRef<HTMLButtonElement>(null)
-  const [fontSize, setFontSize] = useState(() => {
-    const saved = localStorage.getItem('terminal-font-size')
-    return saved ? parseInt(saved, 10) : 13
-  })
-
-  const adjustFontSize = useCallback((delta: number) => {
-    setFontSize((prev) => {
-      const newSize = Math.max(6, Math.min(24, prev + delta))
-      localStorage.setItem('terminal-font-size', String(newSize))
-      return newSize
-    })
-  }, [])
 
   const { containerRef, terminalRef, inTmuxCopyModeRef, setTmuxCopyMode } = useTerminal({
     sessionId: session?.id ?? null,
@@ -954,49 +944,22 @@ export default function Terminal({
               </button>
 
               {showMoreMenu && (
-                <div className="absolute right-0 top-full mt-1 z-20 min-w-[160px] rounded-md border border-border bg-elevated shadow-lg py-1">
+                <div className="absolute right-0 top-full mt-1 z-20 min-w-[140px] rounded-md border border-border bg-elevated shadow-lg py-1">
                   <button
                     onClick={handleStartRename}
-                    className="w-full px-3 py-2 text-left text-sm text-secondary hover:bg-hover hover:text-primary"
+                    className="w-full px-3 py-2 text-left text-sm text-secondary hover:bg-hover hover:text-primary flex items-center gap-2"
                   >
+                    <Edit05Icon width={14} height={14} />
                     Rename
-                  </button>
-                  <div className="border-t border-border my-1" />
-                  <div className="px-3 py-2">
-                    <div className="text-xs text-muted mb-2">Font Size</div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => adjustFontSize(-1)}
-                        className="flex h-7 w-7 items-center justify-center rounded bg-surface border border-border text-secondary hover:bg-hover"
-                      >
-                        <span className="text-sm font-bold">−</span>
-                      </button>
-                      <span className="text-sm text-secondary w-6 text-center">{fontSize}</span>
-                      <button
-                        onClick={() => adjustFontSize(1)}
-                        className="flex h-7 w-7 items-center justify-center rounded bg-surface border border-border text-secondary hover:bg-hover"
-                      >
-                        <span className="text-sm font-bold">+</span>
-                      </button>
-                    </div>
-                  </div>
-                  <div className="border-t border-border my-1" />
-                  <button
-                    onClick={() => {
-                      toggleTheme()
-                      setShowMoreMenu(false)
-                    }}
-                    className="w-full px-3 py-2 text-left text-sm text-secondary hover:bg-hover hover:text-primary"
-                  >
-                    {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                   </button>
                   <button
                     onClick={() => {
                       onOpenSettings()
                       setShowMoreMenu(false)
                     }}
-                    className="w-full px-3 py-2 text-left text-sm text-secondary hover:bg-hover hover:text-primary"
+                    className="w-full px-3 py-2 text-left text-sm text-secondary hover:bg-hover hover:text-primary flex items-center gap-2"
                   >
+                    <Settings01Icon width={14} height={14} />
                     Settings
                   </button>
                 </div>

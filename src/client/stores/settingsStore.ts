@@ -86,6 +86,8 @@ interface SettingsState {
   setSessionSortDirection: (direction: SessionSortDirection) => void
   useWebGL: boolean
   setUseWebGL: (enabled: boolean) => void
+  fontSize: number
+  setFontSize: (size: number) => void
   lineHeight: number
   setLineHeight: (height: number) => void
   shortcutModifier: ShortcutModifier | 'auto'
@@ -124,6 +126,8 @@ export const useSettingsStore = create<SettingsState>()(
         set({ sessionSortDirection: direction }),
       useWebGL: true,
       setUseWebGL: (enabled) => set({ useWebGL: enabled }),
+      fontSize: 13,
+      setFontSize: (size) => set({ fontSize: Math.max(8, Math.min(24, size)) }),
       lineHeight: 1.4,
       setLineHeight: (height) => set({ lineHeight: Math.max(1.0, Math.min(2.0, height)) }),
       shortcutModifier: 'auto',
