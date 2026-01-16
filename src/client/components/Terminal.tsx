@@ -222,11 +222,20 @@ export default function Terminal({
     }
   }, [isRenaming])
 
-  // Focus kill session button when confirm modal opens
+  // Focus kill session button when confirm modal opens and handle Escape key
   useEffect(() => {
     if (showEndConfirm && endSessionButtonRef.current) {
       endSessionButtonRef.current.focus()
     }
+    if (!showEndConfirm) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setShowEndConfirm(false)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
   }, [showEndConfirm])
 
   const handleEndSession = () => {

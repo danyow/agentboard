@@ -882,7 +882,7 @@ function SessionRow({
           )}
           {sessionIdPrefix && (
             <span
-              className="shrink-0 text-[11px] font-mono text-muted opacity-50"
+              className="shrink-0 text-[11px] font-mono text-muted"
               title={agentSessionId}
             >
               {sessionIdPrefix}

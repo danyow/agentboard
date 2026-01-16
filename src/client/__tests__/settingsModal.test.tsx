@@ -6,6 +6,7 @@ import {
   DEFAULT_PROJECT_DIR,
   useSettingsStore,
 } from '../stores/settingsStore'
+import { useThemeStore } from '../stores/themeStore'
 
 const globalAny = globalThis as typeof globalThis & {
   localStorage?: Storage
@@ -47,6 +48,7 @@ beforeEach(() => {
     showLastUserMessage: true,
     showSessionIdPrefix: false,
   })
+  useThemeStore.setState({ theme: 'dark' })
 })
 
 afterEach(() => {
@@ -63,6 +65,7 @@ afterEach(() => {
     showLastUserMessage: true,
     showSessionIdPrefix: false,
   })
+  useThemeStore.setState({ theme: 'dark' })
 })
 
 describe('SettingsModal', () => {

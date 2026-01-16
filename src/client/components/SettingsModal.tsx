@@ -8,6 +8,7 @@ import {
   type SessionSortMode,
   type ShortcutModifier,
 } from '../stores/settingsStore'
+import { useThemeStore, type Theme } from '../stores/themeStore'
 import { getEffectiveModifier, getModifierDisplay } from '../utils/device'
 import { Switch } from './Switch'
 
@@ -68,6 +69,8 @@ export default function SettingsModal({
   const setShowSessionIdPrefix = useSettingsStore(
     (state) => state.setShowSessionIdPrefix
   )
+  const theme = useThemeStore((state) => state.theme)
+  const setTheme = useThemeStore((state) => state.setTheme)
 
   const [draftDir, setDraftDir] = useState(defaultProjectDir)
   const [draftPresets, setDraftPresets] = useState<CommandPreset[]>(commandPresets)
@@ -90,6 +93,7 @@ export default function SettingsModal({
   const [draftShowSessionIdPrefix, setDraftShowSessionIdSuffix] = useState(
     showSessionIdPrefix
   )
+  const [draftTheme, setDraftTheme] = useState<Theme>(theme)
 
   // New preset form state
   const [showAddForm, setShowAddForm] = useState(false)
@@ -118,6 +122,7 @@ export default function SettingsModal({
       setDraftShowProjectName(showProjectName)
       setDraftShowLastUserMessage(showLastUserMessage)
       setDraftShowSessionIdSuffix(showSessionIdPrefix)
+      setDraftTheme(theme)
       setShowAddForm(false)
       setNewLabel('')
       setNewBaseCommand('')
@@ -165,6 +170,7 @@ export default function SettingsModal({
     showProjectName,
     showLastUserMessage,
     showSessionIdPrefix,
+    theme,
     isOpen,
   ])
 
@@ -203,6 +209,7 @@ export default function SettingsModal({
     setShowProjectName(draftShowProjectName)
     setShowLastUserMessage(draftShowLastUserMessage)
     setShowSessionIdPrefix(draftShowSessionIdPrefix)
+    setTheme(draftTheme)
     onClose({ webglChanged })
   }
 
@@ -604,6 +611,19 @@ export default function SettingsModal({
                 />
                 <span className="text-xs text-secondary w-8 text-right">{draftLineHeight.toFixed(1)}</span>
               </div>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between">
+              <div>
+                <div className="text-sm text-primary">Dark Mode</div>
+                <div className="text-[10px] text-muted">
+                  Switch between dark and light themes.
+                </div>
+              </div>
+              <Switch
+                checked={draftTheme === 'dark'}
+                onCheckedChange={(checked) => setDraftTheme(checked ? 'dark' : 'light')}
+              />
             </div>
           </div>
 
