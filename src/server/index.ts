@@ -264,11 +264,20 @@ function hydrateSessionsWithAgentSessions(
     // This catches stale associations from tmux restarts where window IDs changed
     // Only run on startup to avoid blocking periodic refreshes
     if (verifyAssociations) {
+      // Exclude logs from other active sessions to prevent cross-session pollution
+      // (e.g., discussing session A's content in session B causes B's log to match A's window)
+      const otherSessionLogPaths = activeSessions
+        .filter((s) => s.sessionId !== agentSession.sessionId && s.currentWindow)
+        .map((s) => s.logFilePath)
+
       const verified = verifyWindowLogAssociation(
         agentSession.currentWindow,
         agentSession.logFilePath,
         logDirs,
-        { agentType: agentSession.agentType, projectPath: agentSession.projectPath }
+        {
+          context: { agentType: agentSession.agentType, projectPath: agentSession.projectPath },
+          excludeLogPaths: otherSessionLogPaths,
+        }
       )
 
       if (!verified) {

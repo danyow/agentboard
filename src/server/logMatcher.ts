@@ -136,6 +136,8 @@ export interface ExactMatchSearchOptions {
   tailBytes?: number
   rgThreads?: number
   profile?: ExactMatchProfiler
+  /** Log paths to exclude from matching (e.g., logs belonging to other active windows) */
+  excludeLogPaths?: string[]
 }
 
 export interface ExactMessageSearchOptions extends ExactMatchSearchOptions {
@@ -1038,6 +1040,15 @@ export function tryExactMatchWindowToLog(
     }
   }
 
+  // Filter out explicitly excluded log paths (e.g., logs belonging to other active windows)
+  if (search.excludeLogPaths && search.excludeLogPaths.length > 0) {
+    const excludeSet = new Set(search.excludeLogPaths)
+    const filtered = candidates.filter((candidate) => !excludeSet.has(candidate))
+    if (filtered.length > 0) {
+      candidates = filtered
+    }
+  }
+
   const orderedMessages = messages
     .filter((message: string) => message.length >= MIN_EXACT_MATCH_LENGTH)
     .slice()
@@ -1190,6 +1201,13 @@ export function matchWindowsToLogsByExactRg(
   return resolved
 }
 
+export interface VerifyWindowLogOptions {
+  context?: ExactMatchContext
+  scrollbackLines?: number
+  /** Log paths to exclude from consideration (e.g., logs belonging to other active windows) */
+  excludeLogPaths?: string[]
+}
+
 /**
  * Verify that a window's terminal content matches a specific log file.
  * Used on startup to validate stored currentWindow associations before trusting them.
@@ -1200,15 +1218,25 @@ export function verifyWindowLogAssociation(
   tmuxWindow: string,
   logPath: string,
   logDirs: string[],
-  context: ExactMatchContext = {},
-  scrollbackLines = DEFAULT_SCROLLBACK_LINES
+  options: VerifyWindowLogOptions = {}
 ): boolean {
-  // First check if the window matches any log (searching all logs)
+  const {
+    context = {},
+    scrollbackLines = DEFAULT_SCROLLBACK_LINES,
+    excludeLogPaths = [],
+  } = options
+
+  // Build list of logs to exclude, but always include the log we're verifying
+  const excludeSet = new Set(excludeLogPaths)
+  excludeSet.delete(logPath)
+
+  // Check if the window matches any log (searching all logs except excluded ones)
   const bestMatch = tryExactMatchWindowToLog(
     tmuxWindow,
     logDirs,
     scrollbackLines,
-    context
+    context,
+    { excludeLogPaths: excludeSet.size > 0 ? [...excludeSet] : undefined }
   )
   // Verify this log is actually the best match for the window
   // This prevents stale associations where shared content (like /plugin)

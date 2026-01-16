@@ -316,7 +316,7 @@ describe('logMatcher', () => {
     )
     setTmuxOutput('agentboard:1', buildPromptScrollback(messages))
 
-    const result = verifyWindowLogAssociation('agentboard:1', logPath, [tempDir])
+    const result = verifyWindowLogAssociation('agentboard:1', logPath, [tempDir], {})
     expect(result).toBe(true)
 
     await fs.rm(tempDir, { recursive: true, force: true })
@@ -333,7 +333,7 @@ describe('logMatcher', () => {
     )
     setTmuxOutput('agentboard:1', buildPromptScrollback(['different window content']))
 
-    const result = verifyWindowLogAssociation('agentboard:1', logPath, [tempDir])
+    const result = verifyWindowLogAssociation('agentboard:1', logPath, [tempDir], {})
     expect(result).toBe(false)
 
     await fs.rm(tempDir, { recursive: true, force: true })
@@ -349,7 +349,7 @@ describe('logMatcher', () => {
     )
     setTmuxOutput('agentboard:1', '') // Empty terminal
 
-    const result = verifyWindowLogAssociation('agentboard:1', logPath, [tempDir])
+    const result = verifyWindowLogAssociation('agentboard:1', logPath, [tempDir], {})
     expect(result).toBe(false)
 
     await fs.rm(tempDir, { recursive: true, force: true })
