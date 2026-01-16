@@ -284,7 +284,7 @@ describe('LogPoller', () => {
     db.close()
   })
 
-  test('orphans previous session when new log matches same window', async () => {
+  test('does not steal window from existing session when new log matches', async () => {
     const db = initDatabase({ path: ':memory:' })
     const registry = new SessionRegistry()
     registry.replaceSessions([baseSession])
@@ -319,6 +319,11 @@ describe('LogPoller', () => {
     })
     await poller.pollOnce()
 
+    // Session A now has the window
+    const recordA = db.getSessionById('claude-session-a')
+    expect(recordA?.currentWindow).toBe(baseSession.tmuxWindow)
+
+    // Change terminal content to match a different log
     const tokensB = Array.from({ length: 60 }, (_, i) => `next${i}`).join(' ')
     setTmuxOutput(baseSession.tmuxWindow, buildLastExchangeOutput(tokensB))
 
@@ -337,11 +342,13 @@ describe('LogPoller', () => {
 
     await poller.pollOnce()
 
+    // Session A should KEEP the window (not be orphaned)
     const oldRecord = db.getSessionById('claude-session-a')
-    const newRecord = db.getSessionById('claude-session-b')
+    expect(oldRecord?.currentWindow).toBe(baseSession.tmuxWindow)
 
-    expect(oldRecord?.currentWindow).toBeNull()
-    expect(newRecord?.currentWindow).toBe(baseSession.tmuxWindow)
+    // Session B should be created as orphaned (no window)
+    const newRecord = db.getSessionById('claude-session-b')
+    expect(newRecord?.currentWindow).toBeNull()
 
     db.close()
   })

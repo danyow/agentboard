@@ -1193,7 +1193,8 @@ export function matchWindowsToLogsByExactRg(
 /**
  * Verify that a window's terminal content matches a specific log file.
  * Used on startup to validate stored currentWindow associations before trusting them.
- * Returns true if the window content matches the log, false otherwise.
+ * Returns true if the window content matches the log AND this log is the best match
+ * for the window (not just any match).
  */
 export function verifyWindowLogAssociation(
   tmuxWindow: string,
@@ -1202,12 +1203,15 @@ export function verifyWindowLogAssociation(
   context: ExactMatchContext = {},
   scrollbackLines = DEFAULT_SCROLLBACK_LINES
 ): boolean {
-  const result = tryExactMatchWindowToLog(
+  // First check if the window matches any log (searching all logs)
+  const bestMatch = tryExactMatchWindowToLog(
     tmuxWindow,
     logDirs,
     scrollbackLines,
-    context,
-    { logPaths: [logPath] }
+    context
   )
-  return result !== null && result.logPath === logPath
+  // Verify this log is actually the best match for the window
+  // This prevents stale associations where shared content (like /plugin)
+  // causes a weak match to pass verification
+  return bestMatch !== null && bestMatch.logPath === logPath
 }

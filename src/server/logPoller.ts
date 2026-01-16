@@ -492,12 +492,20 @@ export class LogPoller {
           const matchedWindow = exactMatch
           let currentWindow: string | null = matchedWindow?.tmuxWindow ?? null
           if (currentWindow) {
-            matches += 1
             const existingForWindow = this.db.getSessionByWindow(currentWindow)
             if (existingForWindow && existingForWindow.sessionId !== sessionId) {
-              this.db.orphanSession(existingForWindow.sessionId)
-              orphans += 1
-              this.onSessionOrphaned?.(existingForWindow.sessionId)
+              // Window already claimed by another session - don't steal it
+              // The new session will be created as orphaned and can match later
+              // if/when the existing session releases the window
+              logger.info('log_match_skipped_window_claimed', {
+                logPath: entry.logPath,
+                sessionId,
+                matchedWindow: currentWindow,
+                claimedBySessionId: existingForWindow.sessionId,
+              })
+              currentWindow = null
+            } else {
+              matches += 1
             }
           }
 
