@@ -277,27 +277,32 @@ export default function SessionList({
     }
   }, [sessions, inactiveSessions, manualSessionOrder, setManualSessionOrder])
 
-  // Compute sorted sessions with exiting sessions at their original positions
-  const sortedSessions = useMemo(() => {
-    // Sort only the active (non-exiting) sessions
-    const sortedActive = sortSessions(sessions, {
-      mode: sessionSortMode,
-      direction: sessionSortDirection,
-      manualOrder: manualSessionOrder,
-    })
+  const sortedActive = useMemo(
+    () =>
+      sortSessions(sessions, {
+        mode: sessionSortMode,
+        direction: sessionSortDirection,
+        manualOrder: manualSessionOrder,
+      }),
+    [sessions, sessionSortMode, sessionSortDirection, manualSessionOrder]
+  )
 
-    // Update position map for active sessions (captures positions before exit)
-    const activeIds = new Set(sessions.map((s) => s.id))
+  // Persist last committed order for exit positioning
+  useEffect(() => {
+    const activeIds = new Set(sortedActive.map((session) => session.id))
     for (const [idx, session] of sortedActive.entries()) {
       lastSortedOrderRef.current.set(session.id, idx)
     }
-    // Clean up positions for sessions that no longer exist and aren't exiting
     for (const id of lastSortedOrderRef.current.keys()) {
       if (!activeIds.has(id) && !exitingSessions.has(id)) {
         lastSortedOrderRef.current.delete(id)
       }
     }
+  }, [sortedActive, exitingSessions])
 
+  // Compute sorted sessions with exiting sessions at their original positions
+  const sortedSessions = useMemo(() => {
+    const activeIds = new Set(sortedActive.map((s) => s.id))
     // Get exiting sessions that are no longer in the active list
     const exitingArray = Array.from(exitingSessions.values()).filter(
       (s) => !activeIds.has(s.id)
@@ -325,7 +330,7 @@ export default function SessionList({
     }
 
     return result
-  }, [sessions, exitingSessions, sessionSortMode, sessionSortDirection, manualSessionOrder])
+  }, [sortedActive, exitingSessions])
 
   const uniqueProjects = useMemo(
     () => getUniqueProjects(sessions, inactiveSessions),
