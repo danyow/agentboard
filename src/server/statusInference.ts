@@ -14,7 +14,8 @@ export const PERMISSION_PATTERNS: RegExp[] = [
   // Claude Code: numbered selection menu with navigation hint (AskUserQuestion)
   /❯\s*\d+\.\s+\S+[\s\S]*?Esc to cancel/,
   // Claude Code: numbered options like "❯ 1. Yes" or "1. Yes"
-  /[❯>]?\s*1\.\s*(Yes|Allow)/i,
+  // Negative lookahead rejects long sentences like "1. Allow users to enter..."
+  /[❯>]?\s*1\.\s*(Yes|Allow)(?!\s+\w+\s+\w+\s+\w+\s+\w+)/i,
   // Claude Code: "Do you want to proceed?" or similar
   /do you want to (proceed|continue|allow|run)\?/i,
   // Claude Code: "Yes, and don't ask again" style options
