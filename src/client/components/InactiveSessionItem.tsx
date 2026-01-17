@@ -3,6 +3,7 @@ import { getPathLeaf } from '../utils/sessionLabel'
 import { getSessionIdShort } from '../utils/sessionId'
 import { formatRelativeTime } from '../utils/time'
 import AgentIcon from './AgentIcon'
+import ProjectBadge from './ProjectBadge'
 
 interface InactiveSessionItemProps {
   session: AgentSession
@@ -80,19 +81,18 @@ export default function InactiveSessionItem({
             {lastActivity}
           </span>
         </div>
-        {/* Line 2: Directory + last user message (or just directory) */}
+        {/* Line 2: Project badge + last user message */}
         {(showDirectory || showMessage) && (
-          <span
-            className="truncate pl-[1.375rem] text-xs text-muted"
-            title={showDirectory ? session.projectPath : undefined}
-          >
-            {showDirectory ? directoryLeaf : null}
-            {showMessage ? (
-              <span className="italic">
-                {showDirectory ? `: "${session.lastUserMessage}"` : `"${session.lastUserMessage}"`}
+          <div className="flex flex-wrap items-center gap-1 pl-[1.375rem]">
+            {showDirectory && (
+              <ProjectBadge name={directoryLeaf!} fullPath={session.projectPath} />
+            )}
+            {showMessage && (
+              <span className="truncate text-xs italic text-muted">
+                "{session.lastUserMessage}"
               </span>
-            ) : null}
-          </span>
+            )}
+          </div>
         )}
       </div>
     </div>

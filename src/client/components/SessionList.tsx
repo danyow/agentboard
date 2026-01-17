@@ -29,6 +29,7 @@ import { useSessionStore } from '../stores/sessionStore'
 import { getEffectiveModifier, getModifierDisplay } from '../utils/device'
 import AgentIcon from './AgentIcon'
 import InactiveSessionItem from './InactiveSessionItem'
+import ProjectBadge from './ProjectBadge'
 import ProjectFilterDropdown from './ProjectFilterDropdown'
 import SessionPreviewModal from './SessionPreviewModal'
 
@@ -939,19 +940,18 @@ function SessionRow({
           )}
         </div>
 
-        {/* Line 2: Directory + last user message (up to 2 lines total) */}
+        {/* Line 2: Project badge + last user message (up to 2 lines total) */}
         {(showDirectory || showMessage) && (
-          <span
-            className="line-clamp-2 pl-[1.375rem] text-xs text-muted"
-            title={showDirectory ? session.projectPath : undefined}
-          >
-            {showDirectory ? directoryLeaf : null}
-            {showMessage ? (
-              <span className="italic">
-                {showDirectory ? `: "${session.lastUserMessage}"` : `"${session.lastUserMessage}"`}
+          <div className="flex flex-wrap items-center gap-1 pl-[1.375rem]">
+            {showDirectory && (
+              <ProjectBadge name={directoryLeaf!} fullPath={session.projectPath} />
+            )}
+            {showMessage && (
+              <span className="line-clamp-2 text-xs italic text-muted">
+                "{session.lastUserMessage}"
               </span>
-            ) : null}
-          </span>
+            )}
+          </div>
         )}
       </div>
     </div>
