@@ -360,7 +360,8 @@ export default function SessionList({
   }, [sessions, projectFilters])
 
   useEffect(() => {
-    if (projectFilters.length === 0) return
+    // Skip cleanup when no projects loaded yet (would clear persisted filters on initial load)
+    if (projectFilters.length === 0 || uniqueProjects.length === 0) return
     const validProjects = new Set(uniqueProjects)
     const nextFilters = projectFilters.filter((project) => validProjects.has(project))
     if (nextFilters.length !== projectFilters.length) {
