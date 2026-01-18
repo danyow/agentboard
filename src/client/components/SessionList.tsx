@@ -343,6 +343,34 @@ export default function SessionList({
     return sortedSessions.filter((session) => projectFilters.includes(session.projectPath))
   }, [sortedSessions, projectFilters])
 
+  // Track sessions that became visible due to filter changes (for entry animation)
+  const prevFilteredIdsRef = useRef<Set<string>>(new Set(filteredSessions.map((s) => s.id)))
+  const [newlyFilteredInIds, setNewlyFilteredInIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    const currentFilteredIds = new Set(filteredSessions.map((s) => s.id))
+    const newlyVisible = new Set<string>()
+
+    // Find sessions that are now visible but weren't before
+    for (const id of currentFilteredIds) {
+      if (!prevFilteredIdsRef.current.has(id)) {
+        // Only mark as "newly filtered in" if the session already existed (wasn't truly new)
+        // This distinguishes filter changes from actual new sessions
+        if (!newlyActiveIds.has(id)) {
+          newlyVisible.add(id)
+        }
+      }
+    }
+
+    prevFilteredIdsRef.current = currentFilteredIds
+
+    if (newlyVisible.size > 0) {
+      setNewlyFilteredInIds(newlyVisible)
+      const timer = setTimeout(() => setNewlyFilteredInIds(new Set()), 500)
+      return () => clearTimeout(timer)
+    }
+  }, [filteredSessions, newlyActiveIds])
+
   const filteredInactiveSessions = useMemo(() => {
     if (projectFilters.length === 0) return inactiveSessionsWithoutExiting
     return inactiveSessionsWithoutExiting.filter(
@@ -531,7 +559,7 @@ export default function SessionList({
               <div>
                 <AnimatePresence initial={false}>
                   {filteredSessions.map((session, index) => {
-                    const isNew = newlyActiveIds.has(session.id)
+                    const isNew = newlyActiveIds.has(session.id) || newlyFilteredInIds.has(session.id)
                     const entryDelay = isNew ? ENTRY_DELAY / 1000 : 0
                     const isExiting = exitingIds.has(session.id)
                     // Calculate drop indicator position
