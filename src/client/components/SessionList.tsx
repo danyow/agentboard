@@ -175,10 +175,11 @@ export default function SessionList({
 
     if (newIds.size > 0) {
       setNewlyInactiveIds(newIds)
-      const timer = setTimeout(() => setNewlyInactiveIds(new Set()), 500)
+      // Cleanup after animation completes: ENTRY_DELAY (500ms) + animation duration (400ms)
+      const timer = setTimeout(() => setNewlyInactiveIds(new Set()), ENTRY_DELAY + 400)
       return () => clearTimeout(timer)
     }
-  }, [inactiveSessions])
+  }, [inactiveSessions, ENTRY_DELAY])
   const shortcutModifier = useSettingsStore((state) => state.shortcutModifier)
   const modDisplay = getModifierDisplay(getEffectiveModifier(shortcutModifier))
   const sessionSortMode = useSettingsStore((state) => state.sessionSortMode)
@@ -561,8 +562,8 @@ export default function SessionList({
                   {filteredSessions.map((session, index) => {
                     const isTrulyNew = newlyActiveIds.has(session.id)
                     const isFilteredIn = newlyFilteredInIds.has(session.id)
-                    // Only delay truly new sessions, not filter-in (to avoid blank gaps)
-                    const entryDelay = isTrulyNew ? ENTRY_DELAY / 1000 : 0
+                    // No delay for entry animations - animate immediately
+                    const entryDelay = 0
                     const isExiting = exitingIds.has(session.id)
                     // Calculate drop indicator position
                     const activeIndex = activeId
