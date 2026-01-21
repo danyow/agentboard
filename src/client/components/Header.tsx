@@ -3,11 +3,13 @@ import type { ConnectionStatus } from '../stores/sessionStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { PlusIcon } from '@untitledui-icons/react/line'
 import Copy01Icon from '@untitledui-icons/react/line/esm/Copy01Icon'
+import Settings02Icon from '@untitledui-icons/react/line/esm/Settings02Icon'
 import { getEffectiveModifier, getModifierDisplay } from '../utils/device'
 
 interface HeaderProps {
   connectionStatus: ConnectionStatus
   onNewSession: () => void
+  onOpenSettings: () => void
   tailscaleIp: string | null
 }
 
@@ -22,6 +24,7 @@ const statusDot: Record<ConnectionStatus, string> = {
 export default function Header({
   connectionStatus,
   onNewSession,
+  onOpenSettings,
   tailscaleIp,
 }: HeaderProps) {
   const [copied, setCopied] = useState(false)
@@ -57,14 +60,24 @@ export default function Header({
         </div>
       </div>
 
-      <button
-        onClick={onNewSession}
-        className="flex h-7 w-7 items-center justify-center rounded bg-accent text-white hover:bg-accent/90 active:scale-95 transition-all"
-        title={`New session (${modDisplay}N)`}
-        aria-label="New session"
-      >
-        <PlusIcon width={16} height={16} />
-      </button>
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={onNewSession}
+          className="flex h-7 w-7 items-center justify-center rounded bg-accent text-white hover:bg-accent/90 active:scale-95 transition-all"
+          title={`New session (${modDisplay}N)`}
+          aria-label="New session"
+        >
+          <PlusIcon width={16} height={16} />
+        </button>
+        <button
+          onClick={onOpenSettings}
+          className="flex h-7 w-7 items-center justify-center rounded border border-border text-secondary hover:bg-hover hover:text-primary active:scale-95 transition-all"
+          title="Settings"
+          aria-label="Settings"
+        >
+          <Settings02Icon width={14} height={14} />
+        </button>
+      </div>
     </header>
   )
 }

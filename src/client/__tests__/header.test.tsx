@@ -23,7 +23,7 @@ describe('Header', () => {
 
     let created = 0
     const renderer = TestRenderer.create(
-      <Header connectionStatus="connected" onNewSession={() => { created += 1 }} tailscaleIp={null} />
+      <Header connectionStatus="connected" onNewSession={() => { created += 1 }} onOpenSettings={() => {}} tailscaleIp={null} />
     )
 
     const statusDot = renderer.root.findAllByType('span').find((node) =>
@@ -35,11 +35,15 @@ describe('Header', () => {
     }
     expect(statusDot.props.className).toContain('bg-working')
 
-    const button = renderer.root.findByType('button')
-    expect(button.props.title).toBe(`New session (${getNavShortcutMod()}N)`)
+    const buttons = renderer.root.findAllByType('button')
+    const newSessionButton = buttons.find((b) => b.props['aria-label'] === 'New session')
+    if (!newSessionButton) {
+      throw new Error('Expected new session button')
+    }
+    expect(newSessionButton.props.title).toBe(`New session (${getNavShortcutMod()}N)`)
 
     act(() => {
-      button.props.onClick()
+      newSessionButton.props.onClick()
     })
 
     expect(created).toBe(1)
@@ -51,7 +55,7 @@ describe('Header', () => {
 
   test('shows error status styling', () => {
     const renderer = TestRenderer.create(
-      <Header connectionStatus="error" onNewSession={() => {}} tailscaleIp={null} />
+      <Header connectionStatus="error" onNewSession={() => {}} onOpenSettings={() => {}} tailscaleIp={null} />
     )
 
     const statusDot = renderer.root.findAllByType('span').find((node) =>
@@ -71,7 +75,7 @@ describe('Header', () => {
 
   test('displays tailscale IP when provided', () => {
     const renderer = TestRenderer.create(
-      <Header connectionStatus="connected" onNewSession={() => {}} tailscaleIp="100.64.1.2" />
+      <Header connectionStatus="connected" onNewSession={() => {}} onOpenSettings={() => {}} tailscaleIp="100.64.1.2" />
     )
 
     const buttons = renderer.root.findAllByType('button')
@@ -93,7 +97,7 @@ describe('Header', () => {
 
   test('does not display tailscale IP when null', () => {
     const renderer = TestRenderer.create(
-      <Header connectionStatus="connected" onNewSession={() => {}} tailscaleIp={null} />
+      <Header connectionStatus="connected" onNewSession={() => {}} onOpenSettings={() => {}} tailscaleIp={null} />
     )
 
     const spans = renderer.root.findAllByType('span')

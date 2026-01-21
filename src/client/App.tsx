@@ -358,6 +358,7 @@ export default function App() {
         <Header
           connectionStatus={connectionStatus}
           onNewSession={handleNewSession}
+          onOpenSettings={handleOpenSettings}
           tailscaleIp={serverInfo?.tailscaleIp ?? null}
         />
         <SessionList

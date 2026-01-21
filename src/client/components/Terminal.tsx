@@ -906,8 +906,19 @@ export default function Terminal({
           >
             <Menu01Icon width={16} height={16} />
           </button>
+          {/* Kill session button - desktop only, left of session name */}
+          {session && (
+            <button
+              onClick={() => setShowEndConfirm(true)}
+              className="hidden md:flex h-7 w-7 items-center justify-center rounded bg-danger/10 border border-danger/30 text-danger hover:bg-danger/20 active:scale-95 transition-all shrink-0"
+              title={`Kill session (${modDisplay}X)`}
+              aria-label="Kill session"
+            >
+              <XCloseIcon width={16} height={16} />
+            </button>
+          )}
           {session ? (
-            <>
+            <div className="flex items-baseline gap-3 min-w-0">
               {isRenaming ? (
                 <input
                   ref={renameInputRef}
@@ -926,7 +937,7 @@ export default function Terminal({
               <span className={`text-xs shrink-0 ${statusClass[session.status]}`}>
                 {statusText[session.status]}
               </span>
-            </>
+            </div>
           ) : (
             <span className="text-sm font-medium text-primary md:hidden">
               Sessions
@@ -951,11 +962,11 @@ export default function Terminal({
             <PlusIcon width={16} height={16} />
           </button>
 
-          {/* Kill session button - available for all sessions */}
+          {/* Kill session button - mobile only (desktop has it on left) */}
           {session && (
             <button
               onClick={() => setShowEndConfirm(true)}
-              className="flex h-7 w-7 items-center justify-center rounded bg-danger/10 border border-danger/30 text-danger hover:bg-danger/20 active:scale-95 transition-all"
+              className="flex md:hidden h-7 w-7 items-center justify-center rounded bg-danger/10 border border-danger/30 text-danger hover:bg-danger/20 active:scale-95 transition-all"
               title={`Kill session (${modDisplay}X)`}
               aria-label="Kill session"
             >
@@ -963,9 +974,9 @@ export default function Terminal({
             </button>
           )}
 
-          {/* More menu - only show when session selected */}
+          {/* More menu - mobile only (desktop has settings in sidebar header) */}
           {session && (
-            <div className="relative" ref={moreMenuRef}>
+            <div className="relative md:hidden" ref={moreMenuRef}>
               <button
                 onClick={() => setShowMoreMenu(!showMoreMenu)}
                 className="flex h-7 w-7 items-center justify-center rounded bg-surface border border-border text-secondary hover:bg-hover hover:text-primary active:scale-95 transition-all"
