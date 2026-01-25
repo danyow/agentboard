@@ -38,6 +38,7 @@ export interface AgentSession {
   isActive: boolean
   lastUserMessage?: string
   isPinned?: boolean
+  lastResumeError?: string
 }
 
 // Directory browser types

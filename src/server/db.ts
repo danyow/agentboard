@@ -16,6 +16,7 @@ export interface AgentSessionRecord {
   lastUserMessage: string | null
   currentWindow: string | null
   isPinned: boolean
+  lastResumeError: string | null
 }
 
 export interface SessionDatabase {
@@ -55,7 +56,8 @@ const AGENT_SESSIONS_COLUMNS_SQL = `
   last_activity_at TEXT NOT NULL,
   last_user_message TEXT,
   current_window TEXT,
-  is_pinned INTEGER NOT NULL DEFAULT 0
+  is_pinned INTEGER NOT NULL DEFAULT 0,
+  last_resume_error TEXT
 `
 
 const CREATE_TABLE_SQL = `
@@ -87,6 +89,7 @@ export function initDatabase(options: { path?: string } = {}): SessionDatabase {
   migrateLastUserMessageColumn(db)
   migrateDeduplicateDisplayNames(db)
   migrateIsPinnedColumn(db)
+  migrateLastResumeErrorColumn(db)
 
   const insertStmt = db.prepare(
     `INSERT INTO agent_sessions
@@ -166,6 +169,7 @@ export function initDatabase(options: { path?: string } = {}): SessionDatabase {
         lastUserMessage: 'last_user_message',
         currentWindow: 'current_window',
         isPinned: 'is_pinned',
+        lastResumeError: 'last_resume_error',
       }
 
       const fields: string[] = []
@@ -297,7 +301,11 @@ function mapRow(row: Record<string, unknown>): AgentSessionRecord {
       row.current_window === null || row.current_window === undefined
         ? null
         : String(row.current_window),
-    isPinned: Boolean(row.is_pinned),
+    isPinned: Number(row.is_pinned) === 1,
+    lastResumeError:
+      row.last_resume_error === null || row.last_resume_error === undefined
+        ? null
+        : String(row.last_resume_error),
   }
 }
 
@@ -368,6 +376,14 @@ function migrateIsPinnedColumn(db: SQLiteDatabase) {
     return
   }
   db.exec('ALTER TABLE agent_sessions ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0')
+}
+
+function migrateLastResumeErrorColumn(db: SQLiteDatabase) {
+  const columns = getColumnNames(db, 'agent_sessions')
+  if (columns.length === 0 || columns.includes('last_resume_error')) {
+    return
+  }
+  db.exec('ALTER TABLE agent_sessions ADD COLUMN last_resume_error TEXT')
 }
 
 function migrateDeduplicateDisplayNames(db: SQLiteDatabase) {

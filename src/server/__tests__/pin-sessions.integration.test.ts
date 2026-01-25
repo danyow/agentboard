@@ -127,6 +127,7 @@ if (!tmuxAvailable) {
         lastUserMessage: null,
         currentWindow: `${sessionName}:1`, // active
         isPinned: false,
+        lastResumeError: null,
       })
       db.close()
 

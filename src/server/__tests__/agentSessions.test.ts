@@ -14,6 +14,7 @@ const baseRecord: AgentSessionRecord = {
   lastUserMessage: null,
   currentWindow: 'agentboard:1',
   isPinned: false,
+  lastResumeError: null,
 }
 
 describe('agentSessions', () => {

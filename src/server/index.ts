@@ -959,9 +959,15 @@ function handleRename(
 
 function handleSessionPin(
   sessionId: string,
-  isPinned: boolean,
+  isPinned: unknown,
   ws: ServerWebSocket<WSData>
 ) {
+  // Validate isPinned is actually a boolean
+  if (typeof isPinned !== 'boolean') {
+    send(ws, { type: 'session-pin-result', sessionId, ok: false, error: 'isPinned must be a boolean' })
+    return
+  }
+
   if (!isValidSessionId(sessionId)) {
     send(ws, { type: 'session-pin-result', sessionId, ok: false, error: 'Invalid session id' })
     return
@@ -981,11 +987,10 @@ function handleSessionPin(
 
   send(ws, { type: 'session-pin-result', sessionId, ok: true })
 
-  // Update active session if it exists
+  // Update all active sessions that match (in case of edge cases with multiple windows)
   for (const session of registry.getAll()) {
     if (session.agentSessionId === sessionId) {
       registry.updateSession(session.id, { isPinned })
-      break
     }
   }
 
@@ -1001,6 +1006,17 @@ function resurrectPinnedSessions() {
   logger.info('resurrect_pinned_sessions_start', { count: orphanedPinned.length })
 
   for (const record of orphanedPinned) {
+    // Validate sessionId before using in command
+    if (!isValidSessionId(record.sessionId)) {
+      const errorMsg = 'Invalid session id format'
+      db.updateSession(record.sessionId, { isPinned: false, lastResumeError: errorMsg })
+      logger.error('resurrect_pinned_session_invalid_id', {
+        sessionId: record.sessionId,
+        displayName: record.displayName,
+      })
+      continue
+    }
+
     const resumeTemplate =
       record.agentType === 'claude' ? config.claudeResumeCmd : config.codexResumeCmd
     const command = resumeTemplate.replace('{sessionId}', record.sessionId)
@@ -1020,6 +1036,7 @@ function resurrectPinnedSessions() {
       db.updateSession(record.sessionId, {
         currentWindow: created.tmuxWindow,
         displayName: created.name,
+        lastResumeError: null, // Clear any previous error on success
       })
       logger.info('resurrect_pinned_session_success', {
         sessionId: record.sessionId,
@@ -1027,12 +1044,13 @@ function resurrectPinnedSessions() {
         tmuxWindow: created.tmuxWindow,
       })
     } catch (error) {
-      // Resurrection failed - unpin the session
-      db.setPinned(record.sessionId, false)
+      // Resurrection failed - unpin the session and persist error
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      db.updateSession(record.sessionId, { isPinned: false, lastResumeError: errorMsg })
       logger.error('resurrect_pinned_session_failed', {
         sessionId: record.sessionId,
         displayName: record.displayName,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMsg,
       })
     }
   }

@@ -19,6 +19,7 @@ function makeSession(overrides: Partial<{
   lastUserMessage: string | null
   currentWindow: string | null
   isPinned: boolean
+  lastResumeError: string | null
 }> = {}) {
   return {
     sessionId: 'session-abc',
@@ -31,6 +32,7 @@ function makeSession(overrides: Partial<{
     lastUserMessage: null,
     currentWindow: 'agentboard:1',
     isPinned: false,
+    lastResumeError: null,
     ...overrides,
   }
 }

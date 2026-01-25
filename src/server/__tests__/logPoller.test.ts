@@ -383,6 +383,7 @@ describe('LogPoller', () => {
       lastUserMessage: oldMessage,
       currentWindow: baseSession.tmuxWindow,
       isPinned: false,
+      lastResumeError: null,
     })
 
     const poller = new LogPoller(db, registry, {
@@ -432,6 +433,7 @@ describe('LogPoller', () => {
       lastUserMessage: null,
       currentWindow: null,
       isPinned: false,
+      lastResumeError: null,
     })
 
     const poller = new LogPoller(db, registry, {

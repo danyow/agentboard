@@ -14,6 +14,7 @@ export function toAgentSession(record: AgentSessionRecord): AgentSession {
     isActive: record.currentWindow !== null,
     lastUserMessage: record.lastUserMessage ?? undefined,
     isPinned: record.isPinned,
+    lastResumeError: record.lastResumeError ?? undefined,
   }
 }
 
