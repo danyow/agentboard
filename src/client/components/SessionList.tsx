@@ -1067,7 +1067,7 @@ function SessionRow({
           )}
           {session.isPinned && (
             <Pin02Icon
-              className="h-3 w-3 shrink-0 text-muted"
+              className="h-3 w-3 shrink-0 text-primary"
               aria-label="Pinned"
               title="Pinned - will auto-resume on server restart"
             />
@@ -1147,6 +1147,7 @@ function SessionRow({
               }}
               className="w-full px-3 py-2 text-left text-sm text-secondary hover:bg-hover hover:text-primary flex items-center gap-2"
               role="menuitem"
+              title="Create a copy in a new tmux window"
             >
               <Copy01Icon width={14} height={14} />
               Duplicate
@@ -1161,6 +1162,7 @@ function SessionRow({
               }}
               className="w-full px-3 py-2 text-left text-sm text-secondary hover:bg-hover hover:text-primary flex items-center gap-2"
               role="menuitem"
+              title={session.isPinned ? 'Remove from auto-resume list' : 'Auto-resume on server restart'}
             >
               <Pin02Icon width={14} height={14} />
               {session.isPinned ? 'Unpin' : 'Pin'}
