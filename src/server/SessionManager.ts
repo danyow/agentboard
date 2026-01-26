@@ -117,10 +117,15 @@ export class SessionManager {
       throw new Error(`Project path does not exist: ${resolvedPath}`)
     }
 
+    const existingSessions = this.listWindowsForSession(
+      this.sessionName,
+      'managed'
+    )
     const existingWindowNames = new Set(
-      this.listWindowsForSession(this.sessionName, 'managed').map(
-        (session) => session.name
-      )
+      existingSessions.map((session) => session.name)
+    )
+    const existingWindowIds = new Set(
+      existingSessions.map((session) => session.tmuxWindow)
     )
 
     // Check both tmux windows and DB for name collisions
@@ -155,7 +160,34 @@ export class SessionManager {
     this.runTmux(tmuxArgs)
 
     const sessions = this.listWindowsForSession(this.sessionName, 'managed')
-    const created = sessions.find((session) => session.name === finalName)
+    let created = sessions.find((session) => session.name === finalName)
+
+    if (!created) {
+      // Fallback: identify the new window by diffing IDs (handles auto-rename)
+      const newWindows = sessions.filter(
+        (session) => !existingWindowIds.has(session.tmuxWindow)
+      )
+      if (newWindows.length === 1) {
+        created = newWindows[0]
+      } else if (newWindows.length > 1) {
+        const normalizedPath = normalizeProjectPath(resolvedPath)
+        const commandToken = finalCommand.split(/\s+/)[0] || ''
+        created =
+          newWindows.find(
+            (session) =>
+              session.projectPath === normalizedPath &&
+              (commandToken ? session.command?.includes(commandToken) : true)
+          ) ??
+          newWindows.find(
+            (session) => session.projectPath === normalizedPath
+          ) ??
+          newWindows.find(
+            (session) =>
+              commandToken ? session.command?.includes(commandToken) : false
+          ) ??
+          newWindows[0]
+      }
+    }
 
     if (!created) {
       throw new Error('Failed to create tmux window')
