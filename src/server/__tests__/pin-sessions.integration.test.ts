@@ -165,7 +165,7 @@ if (!tmuxAvailable) {
         throw new Error('Resurrected session missing current window')
       }
       expect(resurrected.currentWindow.startsWith(`${sessionName}:`)).toBe(true)
-      assertTmuxWindowExists(sessionName, resurrected.currentWindow)
+      await assertTmuxWindowExists(sessionName, resurrected.currentWindow)
       },
       15000
     )
@@ -271,21 +271,46 @@ async function waitForResurrectedSessionInDb(
   throw new Error('Pinned session did not resurrect in time')
 }
 
-function assertTmuxWindowExists(sessionName: string, tmuxWindow: string) {
-  const result = Bun.spawnSync(
-    ['tmux', 'list-windows', '-t', sessionName, '-F', '#{session_name}:#{window_id}'],
-    { stdout: 'pipe', stderr: 'pipe' }
-  )
-  if (result.exitCode !== 0) {
-    throw new Error('tmux list-windows failed')
-  }
-  const windows = result.stdout
-    .toString()
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-  if (!windows.includes(tmuxWindow)) {
-    throw new Error(`tmux window not found: ${tmuxWindow}`)
+async function assertTmuxWindowExists(
+  sessionName: string,
+  tmuxWindow: string,
+  maxAttempts = 5
+) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const result = Bun.spawnSync(
+      [
+        'tmux',
+        'list-windows',
+        '-t',
+        sessionName,
+        '-F',
+        '#{session_name}:#{window_id}',
+      ],
+      { stdout: 'pipe', stderr: 'pipe' }
+    )
+    if (result.exitCode !== 0) {
+      if (attempt === maxAttempts) {
+        throw new Error(
+          `tmux list-windows failed after ${maxAttempts} attempts: ${result.stderr.toString()}`
+        )
+      }
+      await delay(100)
+      continue
+    }
+    const windows = result.stdout
+      .toString()
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+    if (windows.includes(tmuxWindow)) {
+      return // Success
+    }
+    if (attempt === maxAttempts) {
+      throw new Error(
+        `tmux window not found after ${maxAttempts} attempts. Expected: ${tmuxWindow}, Found: [${windows.join(', ')}]`
+      )
+    }
+    await delay(100)
   }
 }
 
