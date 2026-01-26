@@ -144,10 +144,9 @@ export class LogPoller {
     try {
       const windows = this.registry.getAll()
       const logDirs = getLogSearchDirs()
-      // Only rematch inactive sessions from recent activity to avoid processing stale orphans
       const sessionRecords = [
         ...this.db.getActiveSessions(),
-        ...this.db.getInactiveSessions({ maxAgeHours: config.inactiveSessionMaxAgeHours }),
+        ...this.db.getInactiveSessions(),
       ]
 
       // Build orphan candidates - sessions without active windows
