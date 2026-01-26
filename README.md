@@ -86,11 +86,20 @@ AGENTBOARD_EXCLUDE_PROJECTS=<empty>,/workspace
 
 `VITE_ALLOWED_HOSTS` allows access to the Vite dev server from other hostnames. Useful with Tailscale MagicDNS - add your machine name (e.g., `nuc`) to access the dev server at `http://nuc:5173` from other devices on your tailnet.
 
-Session data (log-to-window mappings) is stored in `~/.agentboard/agentboard.db`. Override with `AGENTBOARD_DB_PATH`.
+All persistent data is stored in `~/.agentboard/`: session database (`agentboard.db`) and logs (`agentboard.log`). Override paths with `AGENTBOARD_DB_PATH` and `LOG_FILE`.
 
 `AGENTBOARD_INACTIVE_MAX_AGE_HOURS` limits inactive sessions shown in the UI to those with recent activity (default: 24 hours). Older sessions remain in the database but are not displayed or processed for orphan rematch.
 
 `AGENTBOARD_EXCLUDE_PROJECTS` filters out sessions from specific project directories (comma-separated). Use `<empty>` to exclude sessions with no project path. Useful for hiding automated/spam sessions.
+
+## Logging
+
+```
+LOG_LEVEL=info                          # debug | info | warn | error (default: info)
+LOG_FILE=~/.agentboard/agentboard.log   # default; set empty to disable file logging
+```
+
+Console output is pretty-printed in development, JSON in production (`NODE_ENV=production`). File output is always JSON. Set `LOG_FILE=` (empty) to disable file logging.
 
 ## Troubleshooting
 

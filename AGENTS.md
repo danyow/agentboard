@@ -26,6 +26,8 @@ src/client/     React frontend, xterm.js terminal, Zustand stores
 src/shared/     Shared types
 ```
 
+- Data directory: `~/.agentboard/` contains `agentboard.db` (session data) and `agentboard.log`
+
 ## How It Works
 
 - Single tmux session (default: `agentboard`) with one window per project
