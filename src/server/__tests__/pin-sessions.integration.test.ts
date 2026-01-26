@@ -33,6 +33,7 @@ if (!tmuxAvailable) {
     let serverProcess: ReturnType<typeof Bun.spawn> | null = null
     let port = 0
     let tmuxTmpDir: string | null = null
+    let baselineWindows: string[] = []
     const tmuxEnv = (): NodeJS.ProcessEnv =>
       tmuxTmpDir ? { ...process.env, TMUX_TMPDIR: tmuxTmpDir } : { ...process.env }
 
@@ -107,6 +108,7 @@ if (!tmuxAvailable) {
       db.close()
 
       await startServer()
+      baselineWindows = listTmuxWindows(sessionName, tmuxEnv())
     })
 
     afterAll(async () => {
@@ -157,6 +159,12 @@ if (!tmuxAvailable) {
       db.close()
 
       await startServer()
+      await waitForWindowCount(
+        sessionName,
+        baselineWindows.length + 1,
+        tmuxEnv(),
+        8000
+      )
 
       const resurrected = await waitForResurrectedSessionInDb(
         resurrectSessionId,
@@ -284,6 +292,50 @@ async function waitForResurrectedSessionInDb(
     ? ` Last resume error: ${lastRecord.lastResumeError}`
     : ''
   throw new Error(`Pinned session did not resurrect in time.${detail}`)
+}
+
+function listTmuxWindows(
+  sessionName: string,
+  env?: NodeJS.ProcessEnv
+): string[] {
+  const result = Bun.spawnSync(
+    [
+      'tmux',
+      'list-windows',
+      '-t',
+      sessionName,
+      '-F',
+      '#{session_name}:#{window_id}',
+    ],
+    { stdout: 'pipe', stderr: 'pipe', env }
+  )
+  if (result.exitCode !== 0) {
+    return []
+  }
+  return result.stdout
+    .toString()
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+async function waitForWindowCount(
+  sessionName: string,
+  minCount: number,
+  env?: NodeJS.ProcessEnv,
+  timeoutMs = 8000
+): Promise<void> {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    const windows = listTmuxWindows(sessionName, env)
+    if (windows.length >= minCount) {
+      return
+    }
+    await delay(150)
+  }
+  throw new Error(
+    `Timed out waiting for tmux windows (expected >= ${minCount}) for ${sessionName}`
+  )
 }
 
 async function assertTmuxWindowExists(
