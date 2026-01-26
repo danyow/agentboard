@@ -110,6 +110,7 @@ export default function SessionList({
   )
   const [newlyActiveIds, setNewlyActiveIds] = useState<Set<string>>(new Set())
 
+  // Detect newly active sessions
   useEffect(() => {
     const currentIds = new Set(sessions.map((s) => s.id))
     const currentInactiveIds = new Set(
@@ -136,10 +137,15 @@ export default function SessionList({
 
     if (newIds.size > 0) {
       setNewlyActiveIds(newIds)
-      const timer = setTimeout(() => setNewlyActiveIds(new Set()), 500)
-      return () => clearTimeout(timer)
     }
   }, [sessions, inactiveSessions])
+
+  // Auto-clear newlyActiveIds after delay (separate effect to avoid timer bugs)
+  useEffect(() => {
+    if (newlyActiveIds.size === 0) return
+    const timer = setTimeout(() => setNewlyActiveIds(new Set()), 500)
+    return () => clearTimeout(timer)
+  }, [newlyActiveIds])
 
   const shortcutModifier = useSettingsStore((state) => state.shortcutModifier)
   const modDisplay = getModifierDisplay(getEffectiveModifier(shortcutModifier))
@@ -218,6 +224,7 @@ export default function SessionList({
   const prevFilteredIdsRef = useRef<Set<string>>(new Set(filteredSessions.map((s) => s.id)))
   const [newlyFilteredInIds, setNewlyFilteredInIds] = useState<Set<string>>(new Set())
 
+  // Detect sessions that became visible due to filter changes
   useEffect(() => {
     const currentFilteredIds = new Set(filteredSessions.map((s) => s.id))
     const newlyVisible = new Set<string>()
@@ -237,10 +244,15 @@ export default function SessionList({
 
     if (newlyVisible.size > 0) {
       setNewlyFilteredInIds(newlyVisible)
-      const timer = setTimeout(() => setNewlyFilteredInIds(new Set()), 500)
-      return () => clearTimeout(timer)
     }
   }, [filteredSessions, newlyActiveIds])
+
+  // Auto-clear newlyFilteredInIds after delay (separate effect to avoid timer bugs)
+  useEffect(() => {
+    if (newlyFilteredInIds.size === 0) return
+    const timer = setTimeout(() => setNewlyFilteredInIds(new Set()), 500)
+    return () => clearTimeout(timer)
+  }, [newlyFilteredInIds])
 
   const filteredInactiveSessions = useMemo(() => {
     if (projectFilters.length === 0) return inactiveSessions
