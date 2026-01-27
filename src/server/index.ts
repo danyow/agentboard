@@ -253,21 +253,6 @@ function hydrateSessionsWithAgentSessions(
   const orphaned: AgentSession[] = []
   const logDirs = getLogSearchDirs()
 
-  // Safeguard: don't mass-orphan if window list seems incomplete
-  // This can happen if tmux commands fail temporarily on server restart
-  const wouldOrphanCount = activeSessions.filter(
-    (s) => s.currentWindow && !windowSet.has(s.currentWindow)
-  ).length
-  if (wouldOrphanCount > 0 && wouldOrphanCount === activeSessions.length) {
-    logger.warn('hydrate_would_orphan_all', {
-      activeSessionCount: activeSessions.length,
-      windowCount: windowSet.size,
-      wouldOrphanCount,
-      message: 'Would orphan ALL active sessions - skipping to prevent data loss',
-    })
-    return sessions
-  }
-
   for (const agentSession of activeSessions) {
     if (!agentSession.currentWindow || !windowSet.has(agentSession.currentWindow)) {
       logger.info('session_orphaned', {
