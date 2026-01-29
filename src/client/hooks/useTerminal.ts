@@ -295,6 +295,11 @@ export function useTerminal({
 
       terminal.open(container)
       fitAddon.fit()
+
+      // Append tooltip after terminal.open() sets terminal.element
+      if (tooltip && terminal.element) {
+        terminal.element.appendChild(tooltip)
+      }
     }
 
     // Wait for fonts to be ready before opening terminal to ensure WebGL
@@ -338,7 +343,6 @@ export function useTerminal({
       tooltipHint.style.fontSize = '11px'
       tooltip.appendChild(tooltipHint)
 
-      terminal.element?.appendChild(tooltip)
       linkTooltipRef.current = tooltip
     }
 
@@ -360,18 +364,50 @@ export function useTerminal({
       if (tooltip) tooltip.style.display = 'none'
     }
 
+    // Track the currently hovered link URL so we can open it on mousedown
+    // before xterm.js sends mouse sequences to tmux that exit copy-mode
+    let hoveredLinkUrl: string | null = null
+    let linkOpenedOnMouseDown = false
+    let linkOpenedResetTimer: ReturnType<typeof setTimeout> | null = null
+
     // Link handler with hover/leave callbacks - used for both OSC 8 and WebLinksAddon
     const linkHandler = {
       activate: (event: MouseEvent, text: string) => {
+        // Skip if already opened by mousedown handler (prevents double-open)
+        if (linkOpenedOnMouseDown) return
+        // Fallback for cases where mousedown didn't intercept
         if (event.metaKey || event.ctrlKey) {
           const sanitized = sanitizeLink(text)
           if (!sanitized) return
           window.open(sanitized, '_blank', 'noopener')
         }
       },
-      hover: (event: MouseEvent, text: string) => showTooltip(event, text),
-      leave: () => hideTooltip(),
+      hover: (event: MouseEvent, text: string) => {
+        const sanitized = sanitizeLink(text)
+        hoveredLinkUrl = sanitized || null
+        showTooltip(event, text)
+      },
+      leave: () => {
+        hoveredLinkUrl = null
+        hideTooltip()
+      },
     }
+
+    // Open links on mousedown instead of click to beat the race condition where
+    // xterm.js sends mouse sequences to tmux (exiting copy-mode) before the
+    // link addon's click handler fires
+    const handleLinkMouseDown = (e: MouseEvent) => {
+      if (hoveredLinkUrl && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        e.stopPropagation()
+        linkOpenedOnMouseDown = true
+        window.open(hoveredLinkUrl, '_blank', 'noopener')
+        // Reset flag after a short delay (in case click event still fires)
+        if (linkOpenedResetTimer) clearTimeout(linkOpenedResetTimer)
+        linkOpenedResetTimer = setTimeout(() => { linkOpenedOnMouseDown = false }, 100)
+      }
+    }
+    container.addEventListener('mousedown', handleLinkMouseDown, true)
 
     // Set linkHandler for OSC 8 hyperlinks
     terminal.options.linkHandler = linkHandler
@@ -416,7 +452,19 @@ export function useTerminal({
     terminal.onData((data) => {
       const attached = attachedSessionRef.current
       if (attached) {
-        // If we scrolled in tmux copy-mode, exit it before sending input
+        // When in copy-mode, filter out mouse sequences so clicks don't exit copy-mode
+        // This prevents accidental copy-mode exit when clicking in scrollback (Safari desktop)
+        // Mouse sequence formats:
+        // - SGR extended: ESC [ < Ps ; Ps ; Ps M/m (most common with tmux)
+        // - URXVT: ESC [ Ps ; Ps ; Ps M
+        // - Normal/UTF-8: ESC [ M followed by exactly 3 encoded bytes
+        // eslint-disable-next-line no-control-regex
+        const isMouseSequence = /^\x1b\[(<[\d;]+[Mm]|[\d;]+M|M[\x20-\xff]{3})$/.test(data)
+        if (inTmuxCopyModeRef.current && isMouseSequence) {
+          return // Drop mouse event, let xterm handle selection locally
+        }
+
+        // If we scrolled in tmux copy-mode, exit it before sending keyboard input
         if (inTmuxCopyModeRef.current) {
           sendMessageRef.current({ type: 'tmux-cancel-copy-mode', sessionId: attached })
           setTmuxCopyMode(false)
@@ -495,6 +543,11 @@ export function useTerminal({
     return () => {
       // Cancel any pending async operations (font loading)
       cancelled = true
+      // Clean up link handling state
+      if (linkOpenedResetTimer) clearTimeout(linkOpenedResetTimer)
+      hoveredLinkUrl = null
+      // Remove link mousedown handler
+      container.removeEventListener('mousedown', handleLinkMouseDown, true)
       // Remove tooltip element
       if (linkTooltipRef.current) {
         linkTooltipRef.current.remove()
@@ -618,6 +671,8 @@ export function useTerminal({
       sendMessage({ type: 'terminal-detach', sessionId: prevAttached })
       attachedSessionRef.current = null
       attachedTargetRef.current = null
+      // Reset copy-mode state - each session has its own scroll position
+      inTmuxCopyModeRef.current = false
     }
 
     // Attach to new session
@@ -642,6 +697,9 @@ export function useTerminal({
       // Mark as attached
       attachedSessionRef.current = sessionId
       attachedTargetRef.current = tmuxTarget ?? null
+
+      // Check if this session is already in copy-mode (scrolled back)
+      sendMessage({ type: 'tmux-check-copy-mode', sessionId })
 
       // Scroll to bottom and focus after content loads
       if (scrollTimer.current) {
